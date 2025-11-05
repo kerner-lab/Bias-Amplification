@@ -437,6 +437,38 @@ if __name__ == "__main__":
         1, 1, 1, numFirst=1, activations=["sigmoid", "sigmoid", "sigmoid"]
     )
 
+    #Leakage Parameter Initialization
+    leakage_obj = Leakage(
+        {"attacker": attackerModel},
+        {
+            "learning_rate": 0.05,
+            "loss_function": "bce",
+            "epochs": 100,
+            "batch_size": 64,
+        },
+        model_1_acc,
+        "accuracy",
+        threshold=True,
+    )
+    leakage_1 = leakage_obj.getAmortizedLeakage(P, D, M1)
+    print(f"Leakage for case 1: {leakage_1}")
+    print("______________________________________")
+    print("______________________________________")
+    leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
+    print(f"Leakage for case 2: {leakage_2}")
+    print("______________________________________")
+    print("______________________________________")
+    leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
+    print(f"Leakage for case 3: {leakage_3}")
+    print("______________________________________")
+    print("______________________________________")
+    leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
+    print(f"Leakage for case 4: {leakage_4}")
+    print("______________________________________")
+    print("______________________________________")
+
+
+    
     # Parameter Initialization
     dpa_obj = DPA(
         {"attacker_AtoT": attackerModel, "attacker_TtoA": attackerModel},
