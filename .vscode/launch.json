@@ -9,7 +9,21 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
+            "python": "/opt/anaconda3/envs/dpa/bin/python",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["${file}"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "/opt/anaconda3/envs/dpa/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }
