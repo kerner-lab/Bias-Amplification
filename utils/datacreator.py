@@ -44,6 +44,7 @@ def dataCreator(N=512, error_percent=0.1, shuffle=False, data_error_percent=None
     if data_error_percent == None:
         data_error_percent = error_percent
     else:
+        data_error_percent = data_error_percent / 2
         validate_error_percent(data_error_percent, "data_error")
 
     # Calculating partitions

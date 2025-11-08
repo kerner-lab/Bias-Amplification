@@ -55,8 +55,9 @@ class TestingBiasValidation:
 
     def test_datacreator_returns_correct_D_bias(self):
         N = 16384
-        data_err_pct = 0.05
-        data_err_cnt = int(N * data_err_pct)
+        data_err_pct = 0.2
+        data_err_cnt_half = int(N * (data_err_pct/2))
+        data_err_cnt = data_err_cnt_half * 2
         _, D, D_bias, _, _ = dataCreator(N=N, data_error_percent=data_err_pct)
         q1 = N//4
         mid = N//2
@@ -68,8 +69,8 @@ class TestingBiasValidation:
         errors_in_quarter_3 = np.sum(D[mid:q3] != D_bias[mid:q3])
         errors_in_quarter_4 = np.sum(D[q3:] != D_bias[q3:])
         #asserting tests
-        assert tot_errors_in_D_bias == 2*data_err_cnt, f"D_bias should have a total of {2*data_err_cnt} errors"
-        assert errors_in_quarter_1 == errors_in_quarter_4 == data_err_cnt, f"D_bias should have {data_err_cnt} errors in quarter 1 and 4"
+        assert tot_errors_in_D_bias == data_err_cnt, f"D_bias should have a total of {data_err_cnt} errors"
+        assert errors_in_quarter_1 == errors_in_quarter_4 == data_err_cnt_half, f"D_bias should have {data_err_cnt_half} errors in quarter 1 and 4"
         assert errors_in_quarter_2 == errors_in_quarter_3 == 0, f"D_bias should have zero errors in quarter 2 and 3"
 
     def test_datacreator_returns_correct_M_unbias(self):
