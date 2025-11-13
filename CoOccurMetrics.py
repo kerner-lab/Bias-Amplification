@@ -71,7 +71,7 @@ class BaseCoOccurMetric(ABC):
 
         """
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
-        probs = probs / probs.sum(axis=0)
+        probs = probs / probs.sum(axis=0).clamp(min=1e-10)
         # num_A = A.shape[1]
         # num_T = T.shape[1]
         # sum_T = T.sum(axis=0)
@@ -100,7 +100,7 @@ class BaseCoOccurMetric(ABC):
 
         """
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
-        probs = probs / probs.sum(axis=1)
+        probs = probs / probs.sum(axis=1).clamp(min=1e-10)
         # num_A = A.shape[1]
         # num_T = T.shape[1]
         # sum_A = A.sum(axis=0)
@@ -186,8 +186,232 @@ class DBA(BaseCoOccurMetric):
 
 class MDBA(BaseCoOccurMetric):
 
-    def __init__(self):
-        pass
+    def __init__(self, min_attr_size: int = 1, max_attr_size: int = None):
+        super().__init__()
+        self.min_attr_size = min_attr_size
+        self.max_attr_size = max_attr_size
+
+    def biasCheck(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+        """
+        Checks if each A-T pair exhibits statistical dependence (positive correlation).
+        Uses independence test: P(A,T) > P(A)P(T)
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t) - represents ONE attribute combination
+
+        Returns
+        -------
+        y_at : torch.tensor
+            Binary mask of shape (a x t) indicating positively correlated pairs
+        """
+        joint_probs = self.computePairProbs(A, T)
+        A_probs = self.computeProbs(A).reshape(-1, 1)
+        T_probs = self.computeProbs(T).reshape(-1, 1)
+        independent_probs = A_probs.matmul(T_probs.T)
+        y_at = joint_probs > independent_probs
+        return y_at * 1.0
+
+    def _generateAttributeCombinations(
+        self,
+        T: torch.tensor,
+    ) -> list[tuple[torch.tensor, tuple]]:
+        """
+        Generate all combinations of attributes for multi-attribute analysis.
+
+        Parameters
+        ----------
+        T : torch.tensor
+            Attribute tensor, shape (N x t)
+
+        Returns
+        -------
+        combinations : list[tuple[torch.tensor, tuple]]
+            List of (tensor, indices) tuples where:
+            - tensor: binary mask of shape (N x 1) indicating presence of combination
+            - indices: tuple of attribute indices in the combination
+        """
+        num_T = T.shape[1]
+
+        min_size = self.min_attr_size
+        max_size = self.max_attr_size if self.max_attr_size else num_T
+
+        combinations = []
+
+        # Generate all possible combinations of attributes
+        from itertools import combinations as iter_combinations
+
+        for size in range(min_size, min(max_size + 1, num_T + 1)):
+            for combo in iter_combinations(range(num_T), size):
+                # Create binary mask: 1 only if ALL attributes in combo are present
+                combo_mask = torch.ones(T.shape[0], dtype=torch.float)
+                for attr_idx in combo:
+                    combo_mask = combo_mask * T[:, attr_idx]
+
+                # Only include if this combination actually occurs in the data
+                if combo_mask.sum() >= 1:  # At least one instance
+                    combinations.append((combo_mask.reshape(-1, 1), combo))
+
+        return combinations
+
+    def computeBiasAmp(
+        self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
+    ) -> tuple[torch.tensor, torch.tensor]:
+        """
+        Computes Multi-Dimensional Bias Amplification from A to T.
+
+        This implements the Multi-> directional metric from the paper (Equation 3).
+        It iterates over ALL combinations of attributes M and computes bias amplification
+        for each combination, then aggregates.
+
+        The formula from the paper:
+        Multi-> = (mean, variance) where
+        mean = (1 / |G||M|) * Σ_g Σ_m |y_gm * Δ_gm + (1 - y_gm) * |-Δ_gm||
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Ground truth group membership, shape (N x a)
+        T : torch.tensor
+            Ground truth tasks/attributes, shape (N x t)
+        T_pred : torch.tensor
+            Predicted tasks/attributes, shape (N x t)
+
+        Returns
+        -------
+        bias_amp_mean : torch.tensor
+            Scalar representing mean bias amplification across all combinations
+        bias_amp_variance : torch.tensor
+            Variance of bias amplification (shows if uniform or concentrated)
+        """
+        num_A = A.shape[1]
+
+        # Generate ALL attribute combinations
+        combinations = self._generateAttributeCombinations(T)
+        num_M = len(combinations)
+
+        if num_M == 0:
+            return torch.tensor(0.0), torch.tensor(0.0)
+
+        # Store all delta values for variance calculation
+        all_deltas = []
+        total_bias_amp = 0.0
+
+        # Iterate over all attribute combinations m ∈ M
+        for m_tensor, m_indices in combinations:
+            # Create corresponding prediction tensor for this combination
+            m_pred_tensor = torch.ones(T_pred.shape[0], dtype=torch.float)
+            for attr_idx in m_indices:
+                m_pred_tensor = m_pred_tensor * T_pred[:, attr_idx]
+            m_pred_tensor = m_pred_tensor.reshape(-1, 1)
+
+            # Check which A-m pairs are positively correlated in the data
+            y_am = self.biasCheck(A, m_tensor)
+
+            # Compute conditional probabilities P(m|A) for data and predictions
+            P_m_given_A = self.computeTgivenA(A, m_tensor)
+            P_mpred_given_A = self.computeTgivenA(A, m_pred_tensor)
+
+            # Calculate change in conditional probability
+            delta_am = P_mpred_given_A - P_m_given_A
+
+            # Weight by bias direction and take absolute value
+            # For each group g and attribute combination m:
+            # If positively correlated (y_am=1): contribution = |delta|
+            # If negatively correlated (y_am=0): contribution = |-delta| = |delta|
+            weighted_delta = (y_am * delta_am) + ((1 - y_am) * (-delta_am))
+            abs_weighted_delta = torch.abs(weighted_delta)
+
+            # Sum over all groups for this attribute combination
+            total_bias_amp += torch.sum(abs_weighted_delta)
+
+            # Store weighted deltas for variance calculation
+            all_deltas.append(weighted_delta.flatten())
+
+        # Normalize by number of groups and attribute combinations
+        bias_amp_mean = total_bias_amp / (num_A * num_M)
+
+        # Compute variance across all group-attribute pairs
+        if len(all_deltas) > 0:
+            all_deltas_cat = torch.cat(all_deltas)
+            bias_amp_variance = torch.var(all_deltas_cat)
+        else:
+            bias_amp_variance = torch.tensor(0.0)
+
+        return bias_amp_mean, bias_amp_variance
+
+    def computeBiasAmpBidirectional(
+        self,
+        A: torch.tensor,
+        A_pred: torch.tensor,
+        T: torch.tensor,
+        T_pred: torch.tensor,
+    ) -> dict[str, tuple[torch.tensor, torch.tensor]]:
+        """
+        Computes bidirectional bias amplification.
+
+        This captures bias amplification in both directions:
+        - Multi_A->T (or Multi_G->M): How group membership (A) influences task predictions (T)
+        - Multi_T->A (or Multi_M->G): How tasks (T) influence group membership predictions (A)
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Ground truth group membership
+        A_pred : torch.tensor
+            Predicted group membership
+        T : torch.tensor
+            Ground truth tasks/attributes
+        T_pred : torch.tensor
+            Predicted tasks/attributes
+
+        Returns
+        -------
+        bias_amp : dict
+            Dictionary with keys 'AtoT' and 'TtoA', each containing
+            (mean, variance) tuples
+        """
+        # A->T means: given group A, how does it affect prediction of T
+        bias_amp_AT = self.computeBiasAmp(A, T, T_pred)
+        # T->A means: given task T, how does it affect prediction of A
+        bias_amp_TA = self.computeBiasAmp(T, A, A_pred)
+        bias_amp = {"AtoT": bias_amp_AT, "TtoA": bias_amp_TA}
+        return bias_amp
+
+    def getAttributeCombinationStats(
+        self,
+        T: torch.tensor,
+    ) -> dict:
+        """
+        Get statistics about attribute combinations in the dataset.
+        Useful for understanding the dataset structure.
+
+        Returns
+        -------
+        stats : dict
+            Dictionary containing:
+            - 'total_combinations': Total number of attribute combinations
+            - 'by_size': Number of combinations for each size
+            - 'examples': Example combinations for each size
+        """
+        combinations = self._generateAttributeCombinations(T)
+
+        stats = {"total_combinations": len(combinations), "by_size": {}, "examples": {}}
+
+        for _, m_indices in combinations:
+            size = len(m_indices)
+            if size not in stats["by_size"]:
+                stats["by_size"][size] = 0
+                stats["examples"][size] = []
+
+            stats["by_size"][size] += 1
+            if len(stats["examples"][size]) < 5:  # Store up to 5 examples
+                stats["examples"][size].append(m_indices)
+
+        return stats
 
 
 if __name__ == "__main__":
