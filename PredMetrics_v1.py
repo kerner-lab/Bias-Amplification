@@ -7,7 +7,7 @@ from typing import Literal, Union, Callable, Tuple, Optional, Dict, Any
 from sklearn.model_selection import train_test_split
 
 
-from utils.losses import ModifiedBCELoss
+from utils.losses import ModifiedBCELoss, ModifiedMSELoss
 import utils.config as config
 
 # ============================================================================
@@ -48,7 +48,7 @@ class BasePredictabilityMetric(ABC):
 
         self.eval_functions = {
             "accuracy": lambda y_pred, y: (y_pred == y).float().mean(),
-            "mse": lambda y_pred, y: ((y_pred - y) ** 2).float().mean(),
+            "mse": ModifiedMSELoss,
             "bce": ModifiedBCELoss,
         }
 
@@ -165,7 +165,7 @@ class BasePredictabilityMetric(ABC):
         y: torch.tensor
         ) -> float:
         """
-        Trains the attacker model for a epoch and return the average loss.
+        Trains the attacker model for an epoch and returns the average loss.
 
         Parameters
         ----------
@@ -293,21 +293,21 @@ class BasePredictabilityMetric(ABC):
             (λ_M - λ_D) / (λ_M + λ_D), otherwise returns λ_M - λ_D
 
         """
-        mode_suffix = "_" + mode if mode else ""
+        mode     = "_" + mode if mode else ""
 
-        # compute data leakage
-        pert_data_train = self.permuteData(data_train, mode_suffix)
-        pert_data_test = self.permuteData(data_test, mode_suffix)
-        self.train(feat_train, pert_data_train, "D" + mode_suffix)
+        # compute data 
+        pert_data_train = self.permuteData(data_train, mode)
+        pert_data_test = self.permuteData(data_test, mode)
+        self.train(feat_train, pert_data_train, "D" + mode)
         lambda_d = self.calcLambda(
-            getattr(self, "attacker_D" + mode_suffix), feat_test, pert_data_test
+            getattr(self, "attacker_D" + mode), feat_test, pert_data_test
         )
         print(f"lambda_d: {lambda_d}")
 
         # compute model leakage
-        self.train(feat_train, pred_train, "M" + mode_suffix)
+        self.train(feat_train, pred_train, "M" + mode)
         lambda_m = self.calcLambda(
-            getattr(self, "attacker_M" + mode_suffix), feat_test, pred_test
+            getattr(self, "attacker_M" + mode), feat_test, pred_test
         )
         print(f"lambda_m: {lambda_m}")
 
@@ -321,7 +321,7 @@ class BasePredictabilityMetric(ABC):
         """ Calculate the lambda value for a given attacker model, input data and target data."""
         y_pred = model(x)
         if self.threshold:
-            y_pred = y_pred > config.DEFAULT_PREDICTION_THRESHOLD
+            y_pred = (y_pred > config.DEFAULT_PREDICTION_THRESHOLD).float()
         return self.eval_metric(y_pred, y)
 
 
@@ -627,30 +627,30 @@ if __name__ == "__main__":
         model_acc=model_1_acc,
         eval_metric="accuracy"
     )
-    # print("="*50)
-    # print(f"Getting Amortized Leakage for Leakage Metric")
-    # print("="*50)
-    # print("Calculating Leakage for case 1")
-    # leakage_1 = leakage_obj.getAmortizedLeakage(P, D, M1)
-    # print(f"Leakage for case 1: {leakage_1}")
-    # print("="*50)
-    # print("="*50)
-    # print("Calculating Leakage for case 2")
-    # leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
-    # print("="*50)
-    # print(f"Amortised Leakage for case 2: {leakage_2}")
-    # print("="*50)
-    # print("="*50)
-    # print("Calculating Leakage for case 3")
-    # leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
-    # print(f"Leakage for case 3: {leakage_3}")
-    # print("="*50)
-    # print("="*50)
-    # print("Calculating Leakage for case 4")
-    # leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
-    # print(f"Leakage for case 4: {leakage_4}")
-    # print("="*50)
-    # print("="*50)
+    print("="*50)
+    print(f"Getting Amortized Leakage for Leakage Metric")
+    print("="*50)
+    print("Calculating Leakage for case 1")
+    leakage_1 = leakage_obj.getAmortizedLeakage(P, D, M1)
+    print(f"Leakage for case 1: {leakage_1}")
+    print("="*50)
+    print("="*50)
+    print("Calculating Leakage for case 2")
+    leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
+    print("="*50)
+    print(f"Amortised Leakage for case 2: {leakage_2}")
+    print("="*50)
+    print("="*50)
+    print("Calculating Leakage for case 3")
+    leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
+    print(f"Leakage for case 3: {leakage_3}")
+    print("="*50)
+    print("="*50)
+    print("Calculating Leakage for case 4")
+    leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
+    print(f"Leakage for case 4: {leakage_4}")
+    print("="*50)
+    print("="*50)
 
 
     
