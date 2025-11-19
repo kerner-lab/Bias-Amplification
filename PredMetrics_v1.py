@@ -209,6 +209,38 @@ class BasePredictabilityMetric(ABC):
         perm = torch.randperm(x.shape[0])
         return x[perm], y[perm]
 
+    def _validate_model_acc_value(self, value: Union[float, int, torch.Tensor], value_name: str = "model_acc") -> None:
+        """
+        Validates a single model accuracy value based on its type.
+        
+        Parameters
+        ----------
+        value : Union[float, int, torch.Tensor]
+            The model accuracy value to validate
+        value_name : str
+            Name of the value for error messages (default: "model_acc")
+            
+        Raises
+        ------
+        ValueError
+            If the value type is invalid or out of range
+        """
+        if isinstance(value, float):
+            if not (0.0 <= value <= 1.0):
+                raise ValueError(f"{value_name} must be between 0.0 and 1.0 for float type, got {value}")
+        elif isinstance(value, int):
+            if not (1 <= value <= 100):
+                raise ValueError(f"{value_name} must be between 1 and 100 for int type, got {value}")
+        elif isinstance(value, torch.Tensor):
+            if value.numel() != 1:
+                raise ValueError(f"{value_name} tensor must have exactly one element, got shape {value.shape}")
+            value_scalar = value.item()
+            if not (0.0 <= value_scalar <= 1.0):
+                raise ValueError(f"{value_name} tensor value must be between 0.0 and 1.0, got {value_scalar}")
+        else:
+            raise ValueError(f"{value_name} must be of type float, int, or torch.Tensor, got {type(value)}")
+
+
     def permuteData(self, data: torch.tensor, mode: str = "AtoT") -> torch.tensor:
         """
         This function permutes data for quality equalization to maintain the accuracy of the model.
@@ -226,11 +258,21 @@ class BasePredictabilityMetric(ABC):
         new_data : torch.tensor
             Randomly pertubed data matching the specified model accuracy.
         """
-        if type(self.model_acc) in [float, int, torch.Tensor]:
+        
+        if isinstance(self.model_acc, (float, int, torch.Tensor)):
+            self._validate_model_acc_value(self.model_acc, "model_acc")
             self.model_acc = config.normalise(self.model_acc)
-            curr_model_acc = self.model_acc
+            curr_model_acc = self.model_acc.item() if isinstance(self.model_acc, torch.Tensor) else float(self.model_acc)
+        elif isinstance(self.model_acc, dict):
+            if mode not in self.model_acc:
+                raise ValueError(f"mode '{mode}' not found in model_acc dictionary. Available keys: {list(self.model_acc.keys())}")
+            if not isinstance(self.model_acc[mode], (float, int, torch.Tensor)):
+                raise ValueError(f"model_acc['{mode}'] must be float, int, or torch.Tensor, got {type(self.model_acc[mode])}")
+            self._validate_model_acc_value(self.model_acc[mode], f"model_acc['{mode}']")
+            self.model_acc[mode] = config.normalise(self.model_acc[mode])
+            curr_model_acc = self.model_acc[mode].item() if isinstance(self.model_acc[mode], torch.Tensor) else float(self.model_acc[mode])
         else:
-            curr_model_acc = self.model_acc[mode]
+            raise ValueError("Invalid model accuracy type given. Expected float, int, torch.Tensor, or dict with mode as key and float, int, torch.Tensor as value.")
 
         num_observations = data.shape[0]
         rand_vect = torch.zeros((num_observations, 1))
@@ -293,21 +335,21 @@ class BasePredictabilityMetric(ABC):
             (λ_M - λ_D) / (λ_M + λ_D), otherwise returns λ_M - λ_D
 
         """
-        mode     = "_" + mode if mode else ""
+        mode_suffix = "_" + mode if mode else ""
 
         # compute data 
         pert_data_train = self.permuteData(data_train, mode)
         pert_data_test = self.permuteData(data_test, mode)
-        self.train(feat_train, pert_data_train, "D" + mode)
+        self.train(feat_train, pert_data_train, "D" + mode_suffix)
         lambda_d = self.calcLambda(
-            getattr(self, "attacker_D" + mode), feat_test, pert_data_test
+            getattr(self, "attacker_D" + mode_suffix), feat_test, pert_data_test
         )
         print(f"lambda_d: {lambda_d}")
 
         # compute model leakage
-        self.train(feat_train, pred_train, "M" + mode)
+        self.train(feat_train, pred_train, "M" + mode_suffix)
         lambda_m = self.calcLambda(
-            getattr(self, "attacker_M" + mode), feat_test, pred_test
+            getattr(self, "attacker_M" + mode_suffix), feat_test, pred_test
         )
         print(f"lambda_m: {lambda_m}")
 
@@ -491,7 +533,7 @@ class DPA(BasePredictabilityMetric):
         model_acc: Union[float, dict],
         eval_metric: Union[Callable, str] = config.DEFAULT_EVAL_METRIC,
         threshold: bool = True,
-        normalized: bool = False,
+        normalized: bool = True,
     ) -> None:
         """
         Parameters
