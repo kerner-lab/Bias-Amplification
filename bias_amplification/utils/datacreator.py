@@ -6,12 +6,22 @@ import pandas as pd
 # validator
 def validate_error_percent(error_percent, name):
     """
-    Checks if the error percentage is valid. otherwise raises an error.
+    Checks if the error percentage is valid. 
+    It raises an error, otherwise.
+
+    Parameters:
+    ----------
+    error_percent: float
+        The error percentage to validate
+    name: str
+        The name of the error percentage to validate
+
+    Raises:
+    -------
+    ValueError: If the error percentage is not in the range [0, 0.25]
     """
     if 0 <= error_percent <= 0.25:
         pass
-    # elif error_percent > 1 and error_percent < 25:
-        # error_percent = error_percent / 100
     else:
         raise ValueError(f"{name}_percent needs to be a float value in [0,0.25].")
 
@@ -19,21 +29,39 @@ def validate_error_percent(error_percent, name):
 # dataCreator function
 def dataCreator(N=512, error_percent=0.1, shuffle=False, data_error_percent=None):
     """
-    This function  a synthetic dataset for the bias amplification analysis.
+    This function generates a synthetic dataset for the bias amplification analysis.
+    It creates a dataset with protected attributes, ground truth task label,
+    biased task data label, model prediction without bias, and model prediction with bias.
 
-    Input:
-     N: Dataset size
-     error_percent: Error percentage of model (must be between 0 and 0.25)
-     shuffle: boolean value to shuffle the data
-     data_error_percent: Error percentage of data (must be between 0 and 0.25)
+    Parameters
+    ----------
+     N: int, default=512
+        The size of the dataset, must be >= 3.
+     error_percent: float, default=0.1
+        The error percentage of the model, must be between 0 and 0.25.
+     shuffle: boolean, default=False
+        Whether to shuffle the data.
+     data_error_percent: float, default=None
+        The error percentage of the data, must be between 0 and 0.25.
 
-    Output:
-    A tuple containing:
-     P: Protected attribute
-     D: Ground truth task label
-     D_bias: Biased task data label
-     M_unbias: Model prediction without bias
-     M2: Model prediction with bias
+    Returns
+    -------
+    P: numpy.ndarray, shape (N,)
+        The protected attributes.
+    D: numpy.ndarray, shape (N,)
+        The ground truth task labels.
+    D_bias: numpy.ndarray, shape (N,)
+        The biased task data labels.
+    M_unbias: numpy.ndarray, shape (N,)
+        The model predictions without bias.
+    M2: numpy.ndarray, shape (N,)
+        The model predictions with bias.
+
+    Examples
+    --------
+    >>> from bias_amplification.utils.datacreator import dataCreator
+    >>> P, D, D_bias, M_unbias, M2 = dataCreator(
+             N=1000, error_percent=0.1, shuffle=False, data_error_percent=0.05)
     """
     if N < 3 or type(N) != int:
         raise ValueError("N must be an integer >= 3. Got {N}")

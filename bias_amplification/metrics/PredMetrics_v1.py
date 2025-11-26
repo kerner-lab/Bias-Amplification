@@ -6,9 +6,10 @@ from abc import ABC, abstractmethod
 from typing import Literal, Union, Callable, Tuple, Optional, Dict, Any
 from sklearn.model_selection import train_test_split
 
-
-from utils.losses import ModifiedBCELoss, ModifiedMSELoss
-import utils.config as config
+from ..attacker_models.ANN import simpleDenseModel
+from ..utils.datacreator import dataCreator
+from ..utils.losses import ModifiedBCELoss, ModifiedMSELoss
+from ..utils import config
 
 # ============================================================================
 # BASE CLASS
@@ -387,6 +388,39 @@ class BasePredictabilityMetric(ABC):
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
     ) -> tuple[torch.tensor, torch.tensor]:
+        """
+        This function computes the average amortized leakage for a given protected attribute,
+        ground truth data and predicted values.
+        If the given dataset is not split into training and testing sets, the data is split into training and testing sets.
+        The leakage is calculated for each trial.
+        The leakage is then averaged based on provided method and the standard deviation is calculated.
+
+        Parameters
+        ----------
+        feat_train: torch.tensor
+            The protected attribute training data.
+        data_train: torch.tensor
+            The ground truth training data.
+        pred_train: torch.tensor
+            The predicted training data.
+        mode: Optional[str]
+            The mode to be used.
+        num_trials: int
+            The number of trials to be used.
+        method: str
+            The method to be used.
+        feat_test: torch.tensor
+            The protected attribute testing data.
+        data_test: torch.tensor
+            The ground truth testing data.
+        pred_test: torch.tensor
+            The predicted testing data.
+
+        Returns
+        -------
+        tuple[torch.tensor, torch.tensor]
+            The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation".
+        """
         if feat_test == None:
             feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
                 self.split(feat_train, data_train, pred_train, test_size=config.DEFAULT_TEST_SIZE)
@@ -448,7 +482,9 @@ class BasePredictabilityMetric(ABC):
 # LEAKAGE Predictability Metric
 # ============================================================================
 class Leakage(BasePredictabilityMetric):
-
+    """
+    This class inherits from the BasePredictabilityMetric class and implements the Leakage metric.
+    """
     def __init__(
         self,
         attacker_model: torch.nn.Module,
@@ -462,7 +498,6 @@ class Leakage(BasePredictabilityMetric):
         Parameters
         ----------
         model_params : dict
-            Dictionary of the following forms-
             {"attacker" : model}
         train_params : dict
             {
@@ -473,13 +508,14 @@ class Leakage(BasePredictabilityMetric):
                 "batch_size: Number of batches per epoch
             }
         model_acc : float
-            The accuracy of the model being tested for quality equalization.
-            For bidirectional case, send dict of the form {'AtoT': acc_AtoT, 'TtoA': acc_TtoA}
-        eval_metric : Union[Callable,str], optional
-            Either a Callable of the form eval_metric(y_pred, y)
-            or a string to utilize exiting methods.
-            Existing options include ["accuracy"]
-            The default is "mse".
+            The accuracy of the model being used for quality equalization.
+        eval_metric : Union[Callable,str]
+            This metric is used to evaluate the attacker model accuracy.
+            Options include ["accuracy", "mse", "bce"].
+        threshold : bool
+            Whether to use a threshold on the predictions.
+        normalized : bool
+            Default is False to use the raw leakage value.
 
         Returns
         -------
@@ -491,6 +527,11 @@ class Leakage(BasePredictabilityMetric):
         super().__init__(model_params, train_params, model_acc, eval_metric, threshold, normalized)
 
     def defineModel(self) -> None:
+        """
+        This function defines the attacker models for the Leakage metric.
+        The attacker model for ground truth data is defined as the attacker_D model.
+        The attacker model for predicted values is defined as the attacker_M model.
+        """
         self.attacker_D = self.model_params["attacker"]
         self.attacker_M = copy.deepcopy(self.attacker_D)
 
@@ -506,7 +547,35 @@ class Leakage(BasePredictabilityMetric):
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
     ) -> tuple[torch.tensor, torch.tensor]:
-        
+        """
+        This function calls the base class method to compute the amortized leakage
+        for the Leakage metric.
+
+        Parameters
+        ----------
+        feat_train: torch.tensor
+            The protected attribute training data.
+        data_train: torch.tensor
+            The ground truth training data.
+        pred_train: torch.tensor
+            The predicted training data.
+        num_trials: int
+            The number of trials to be used.
+        method: str
+            The method to be used.
+        feat_test: torch.tensor
+            The protected attribute testing data.
+        data_test: torch.tensor
+            The ground truth testing data.
+        pred_test: torch.tensor
+            The predicted testing data.
+
+        Returns
+        -------
+        tuple[torch.tensor, torch.tensor]
+            The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
+            for the Leakage metric.
+        """
         return super().getAmortizedLeakage(
             feat_train=feat_train, 
             data_train=data_train, 
@@ -540,27 +609,25 @@ class DPA(BasePredictabilityMetric):
         ----------
         model_params : dict
             Dictionary of the following forms-
-            {"attacker_AtoT" : model_AT, "attacker_TtoA" : model_TA}
+            {"attacker_AtoT" : attacker_AtoT, "attacker_TtoA" : attacker_TtoA}
         train_params : dict
             {
-                "AtoT":
-                    {
-                        "learning_rate": The learning rate hyperparameter,
-                        "loss_function": The loss function to be used.
-                                Existing options: ["mse", "cross-entropy"],
-                        "epochs": Number of training epochs to be set,
-                        "batch_size: Number of batches per epoch
-                    },
-                "TtoA": {same format as AtoT}
+            "learning_rate": The learning rate hyperparameter,
+            "loss_function": The loss function to be used.
+                    Existing options: ["mse", "cross-entropy"],
+            "epochs": Number of training epochs to be set,
+            "batch_size: Number of batches per epoch
             }
         model_acc : Union[float, dict]
-            The accuracy of the model being tested for quality equalization.
+            The accuracy of the model being used for quality equalization.
             For bidirectional case, send dict of the form {'AtoT': acc_AtoT, 'TtoA': acc_TtoA}
-        eval_metric : Union[Callable,str], optional
-            Either a Callable of the form eval_metric(y_pred, y)
-            or a string to utilize exiting methods.
-            Existing options include ["accuracy"]
-            The default is "mse".
+        eval_metric : Union[Callable,str]
+            This metric is used to evaluate the attacker model accuracy.
+            Options include ["accuracy", "mse", "bce"].
+        threshold : bool
+            Whether to use a threshold on the predictions.
+        normalized : bool
+            Default is True in order to use normalization for the leakage calculation.
 
         Returns
         -------
@@ -572,6 +639,11 @@ class DPA(BasePredictabilityMetric):
         super().__init__(model_params, train_params, model_acc, eval_metric, threshold, normalized)
 
     def defineModel(self) -> None:
+        """
+        This function defines the attacker models for the DPA metric.
+        The attacker models for ground truth data are defined as the attacker_D_AtoT and attacker_D_TtoA models.
+        The attacker models for predicted values are defined as the attacker_M_AtoT and attacker_M_TtoA models.
+        """
         if type(self.model_params.get("attacker_AtoT", None)) == None:
             raise Exception("attacker_AtoT Model Missing!")
         if type(self.model_params.get("attacker_TtoA", None)) == None:
@@ -597,6 +669,40 @@ class DPA(BasePredictabilityMetric):
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
     ) -> tuple[torch.tensor, torch.tensor]:
+        """
+        This function calls the base class method to compute the amortized leakage
+        for the DPA metric.
+        The mode is used to determine the direction of the leakage calculation.
+        If mode is "AtoT", the leakage is calculated from the protected attribute to the ground truth data.
+        If mode is "TtoA", the leakage is calculated from the ground truth data to the protected attribute.
+
+        Parameters
+        ----------
+        feat_train: torch.tensor
+            The protected attribute training data.
+        data_train: torch.tensor
+            The ground truth training data.
+        pred_train: torch.tensor
+            The predicted training data.
+        mode: Literal["AtoT", "TtoA"]
+            The mode to be used.
+        num_trials: int
+            The number of trials to be used.
+        method: str
+            The method to be used.
+        feat_test: torch.tensor
+            The protected attribute testing data.
+        data_test: torch.tensor
+            The ground truth testing data.
+        pred_test: torch.tensor
+            The predicted testing data.
+
+        Returns
+        -------
+        tuple[torch.tensor, torch.tensor]
+            The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
+            for the DPA metric.
+        """
         return super().getAmortizedLeakage(
             feat_train=feat_train, 
             data_train=data_train, 
@@ -618,6 +724,32 @@ class DPA(BasePredictabilityMetric):
         num_trials: int = config.DEFAULT_NUM_TRIALS,
         method: str = config.DEFAULT_AGGREGATION_METHOD,
     ) -> tuple[tuple[torch.tensor, torch.tensor], tuple[torch.tensor, torch.tensor]]:
+        """
+        This function computes the bidirectional leakage for a given protected attribute,
+        ground truth data and predicted values.
+
+        Parameters
+        ----------
+        A: torch.tensor
+            The protected attribute.
+        T: torch.tensor
+            The ground truth data.
+        A_pred: torch.tensor
+            The predicted protected attribute.
+        T_pred: torch.tensor
+            The predicted ground truth data.
+        num_trials: int
+            The number of trials to be used.
+        method: str
+            The method to be used.
+
+        Returns
+        -------
+        tuple[tuple[torch.tensor, torch.tensor], tuple[torch.tensor, torch.tensor]]
+            The tuple contains (AtoT_leakage, TtoA_leakage).
+            AtoT_leakage gives the average amortized leakage for the AtoT direction.
+            TtoA_leakage gives the average amortized leakage for the TtoA direction.
+        """
         AtoT_vals = self.getAmortizedLeakage(A, T, T_pred, num_trials, method)
         TtoA_vals = self.getAmortizedLeakage(T, A, A_pred, num_trials, method)
         return (AtoT_vals, TtoA_vals)
@@ -634,10 +766,6 @@ class LIC(BasePredictabilityMetric):
 
 if __name__ == "__main__":
     # Test case
-    from attackerModels.ANN import simpleDenseModel
-
-    # Data Initialization
-    from utils.datacreator import dataCreator
 
     P, D, D2, M1, M2 = dataCreator(16384, 0.2, False, 0.05)
     P = torch.tensor(P, dtype=torch.float).reshape(-1, 1)
@@ -676,54 +804,54 @@ if __name__ == "__main__":
     leakage_1 = leakage_obj.getAmortizedLeakage(P, D, M1)
     print(f"Leakage for case 1: {leakage_1}")
     print("="*50)
-    print("="*50)
-    print("Calculating Leakage for case 2")
-    leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
-    print("="*50)
-    print(f"Amortised Leakage for case 2: {leakage_2}")
-    print("="*50)
-    print("="*50)
-    print("Calculating Leakage for case 3")
-    leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
-    print(f"Leakage for case 3: {leakage_3}")
-    print("="*50)
-    print("="*50)
-    print("Calculating Leakage for case 4")
-    leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
-    print(f"Leakage for case 4: {leakage_4}")
-    print("="*50)
-    print("="*50)
+    # print("="*50)
+    # print("Calculating Leakage for case 2")
+    # leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
+    # print("="*50)
+    # print(f"Amortised Leakage for case 2: {leakage_2}")
+    # print("="*50)
+    # print("="*50)
+    # print("Calculating Leakage for case 3")
+    # leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
+    # print(f"Leakage for case 3: {leakage_3}")
+    # print("="*50)
+    # print("="*50)
+    # print("Calculating Leakage for case 4")
+    # leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
+    # print(f"Leakage for case 4: {leakage_4}")
+    # print("="*50)
+    # print("="*50)
 
 
     
-    # Parameter Initialization
-    dpa_obj = DPA(
-        attacker_AtoT=attackerModel,
-        attacker_TtoA=attackerModel,
-        train_params=train_config,
-        model_acc=model_1_acc,
-        eval_metric="accuracy"
-    )
+    # # Parameter Initialization
+    # dpa_obj = DPA(
+    #     attacker_AtoT=attackerModel,
+    #     attacker_TtoA=attackerModel,
+    #     train_params=train_config,
+    #     model_acc=model_1_acc,
+    #     eval_metric="accuracy"
+    # )
 
-    print("="*50)
-    print(f"Getting Amortized Leakage for DPA Metric")
-    print("="*50)
-    print("Calculating DPA for case 1")
-    dpa_1 = dpa_obj.getAmortizedLeakage(P, D, M1, "AtoT")
-    print(f"DPA for case 1: {dpa_1}")
-    print("="*50)
-    print("="*50)
-    print("Calculating DPA for case 2")
-    dpa_2 = dpa_obj.getAmortizedLeakage(P, D, M2, "AtoT")
-    print(f"DPA for case 2: {dpa_2}")
-    print("="*50)
-    print("="*50)
-    print("Calculating DPA for case 3")
-    dpa_3 = dpa_obj.getAmortizedLeakage(P, D2, M1, "AtoT")
-    print(f"DPA for case 3: {dpa_3}")
-    print("="*50)
-    print("="*50)
-    print("Calculating DPA for case 4")
-    dpa_4 = dpa_obj.getAmortizedLeakage(P, D2, M2, "AtoT")
-    print(f"DPA for case 4: {dpa_4}")
-    print("="*50)
+    # print("="*50)
+    # print(f"Getting Amortized Leakage for DPA Metric")
+    # print("="*50)
+    # print("Calculating DPA for case 1")
+    # dpa_1 = dpa_obj.getAmortizedLeakage(P, D, M1, "AtoT")
+    # print(f"DPA for case 1: {dpa_1}")
+    # print("="*50)
+    # print("="*50)
+    # print("Calculating DPA for case 2")
+    # dpa_2 = dpa_obj.getAmortizedLeakage(P, D, M2, "AtoT")
+    # print(f"DPA for case 2: {dpa_2}")
+    # print("="*50)
+    # print("="*50)
+    # print("Calculating DPA for case 3")
+    # dpa_3 = dpa_obj.getAmortizedLeakage(P, D2, M1, "AtoT")
+    # print(f"DPA for case 3: {dpa_3}")
+    # print("="*50)
+    # print("="*50)
+    # print("Calculating DPA for case 4")
+    # dpa_4 = dpa_obj.getAmortizedLeakage(P, D2, M2, "AtoT")
+    # print(f"DPA for case 4: {dpa_4}")
+    # print("="*50)

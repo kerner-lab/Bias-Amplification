@@ -20,6 +20,19 @@ DEFAULT_NUM_TRIALS = 10
 # UTILS FUNCTIONS
 # ============================================================================
 def normalise(value: Union[float, int, torch.Tensor]) -> Union[float, int, torch.Tensor]:
+    """
+    This function normalises a value to be between 0 and 1.
+
+    Parameters
+    ----------
+    value: float, int, or torch.Tensor
+        The value to normalise.
+
+    Returns
+    -------
+    value: float, int, or torch.Tensor
+        The normalised value.
+    """
     if value > 1:
         value = value / 100
     return value

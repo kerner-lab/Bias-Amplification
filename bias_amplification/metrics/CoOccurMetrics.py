@@ -1,6 +1,11 @@
 # Importing Libraries
 import torch
 from abc import ABC, abstractmethod
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 
 # TODO: Add Documentation. Add note on thresholding inputs before giving to the models. (Doesn't work for probabilities.)

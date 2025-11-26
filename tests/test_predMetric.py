@@ -1,6 +1,6 @@
 import torch
 import pytest
-from PredMetrics_v1 import *
+from metrics.PredMetrics_v1 import *
 from attackerModels.ANN import simpleDenseModel
 from utils.datacreator import dataCreator
 from utils.losses import ModifiedBCELoss
