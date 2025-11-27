@@ -47,9 +47,7 @@ class BasePredictabilityMetric(ABC):
         self.defineModel()
         model = getattr(self, "attacker_" + attacker_mode)
         criterion = self.loss_functions[self.train_params["loss_function"]]
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=self.train_params["learning_rate"]
-        )
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.train_params["learning_rate"])
         batches = math.ceil(len(x) / self.train_params["batch_size"])
 
         print(f"Training Activated for Mode: {attacker_mode}")
@@ -120,8 +118,8 @@ class BasePredictabilityMetric(ABC):
     ) -> tuple[torch.tensor]:
         if test_size == None:
             test_size = self.test_size
-        feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
-            train_test_split(feat, data, pred, test_size=test_size)
+        feat_train, feat_test, data_train, data_test, pred_train, pred_test = train_test_split(
+            feat, data, pred, test_size=test_size
         )
         return feat_train, feat_test, data_train, data_test, pred_train, pred_test
 
@@ -160,13 +158,9 @@ class BasePredictabilityMetric(ABC):
         pert_data_train = self.permuteData(data_train, mode)
         pert_data_test = self.permuteData(data_test, mode)
         self.train(feat_train, pert_data_train, "D" + mode)
-        lambda_d = self.calcLambda(
-            getattr(self, "attacker_D" + mode), feat_test, pert_data_test
-        )
+        lambda_d = self.calcLambda(getattr(self, "attacker_D" + mode), feat_test, pert_data_test)
         self.train(feat_train, pred_train, "M" + mode)
-        lambda_m = self.calcLambda(
-            getattr(self, "attacker_M" + mode), feat_test, pred_test
-        )
+        lambda_m = self.calcLambda(getattr(self, "attacker_M" + mode), feat_test, pred_test)
         print(f"{lambda_d=},\n{lambda_m=}")
         if self.normalized:
             leakage = (lambda_m - lambda_d) / (lambda_m + lambda_d)
@@ -260,8 +254,8 @@ class Leakage(BasePredictabilityMetric):
         pred_test: torch.tensor = None,
     ) -> tuple[torch.tensor, torch.tensor]:
         if feat_test == None:
-            feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
-                self.split(feat_train, data_train, pred_train, test_size=0.2)
+            feat_train, feat_test, data_train, data_test, pred_train, pred_test = self.split(
+                feat_train, data_train, pred_train, test_size=0.2
             )
         vals = torch.zeros(num_trials)
         for i in range(num_trials):
@@ -283,9 +277,7 @@ class Leakage(BasePredictabilityMetric):
         else:
             raise ValueError("Invalid Method given for Amortization.")
 
-    def calcLambda(
-        self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor
-    ) -> torch.tensor:
+    def calcLambda(self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor) -> torch.tensor:
         y_pred = model(x)
         if self.threshold:
             y_pred = y_pred > 0.5
@@ -367,8 +359,8 @@ class DPA(BasePredictabilityMetric):
         pred_test: torch.tensor = None,
     ) -> tuple[torch.tensor, torch.tensor]:
         if feat_test == None:
-            feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
-                self.split(feat_train, data_train, pred_train, test_size=0.2)
+            feat_train, feat_test, data_train, data_test, pred_train, pred_test = self.split(
+                feat_train, data_train, pred_train, test_size=0.2
             )
         vals = torch.zeros(num_trials)
         for i in range(num_trials):
@@ -390,9 +382,7 @@ class DPA(BasePredictabilityMetric):
         else:
             raise ValueError("Invalid Method given for Amortization.")
 
-    def calcLambda(
-        self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor
-    ) -> torch.tensor:
+    def calcLambda(self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor) -> torch.tensor:
         y_pred = model(x)
         if self.threshold:
             y_pred = y_pred > 0.5
@@ -442,7 +432,7 @@ if __name__ == "__main__":
         1, 1, 1, numFirst=1, activations=["sigmoid", "sigmoid", "sigmoid"]
     )
 
-    #Leakage Parameter Initialization
+    # Leakage Parameter Initialization
     leakage_obj = Leakage(
         {"attacker": attackerModel},
         {
@@ -472,8 +462,6 @@ if __name__ == "__main__":
     print("______________________________________")
     print("______________________________________")
 
-
-    
     # Parameter Initialization
     dpa_obj = DPA(
         {"attacker_AtoT": attackerModel, "attacker_TtoA": attackerModel},

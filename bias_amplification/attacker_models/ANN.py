@@ -6,9 +6,10 @@ import torch.nn as nn
 # Defining Models
 class simpleDenseModel(nn.Module):
     """
-    This class defines a simple dense neural network model, 
+    This class defines a simple dense neural network model,
     used mainly for the attacker models in the bias amplification analysis.
     """
+
     def __init__(
         self,
         input_dims,
@@ -91,7 +92,7 @@ class simpleDenseModel(nn.Module):
         This function filters the activations to be used in the neural network.
         If the number of activations is less than the number of layers,
         the activations are extended with the identity activation.
-        
+
         Parameters
         ----------
         activations: list

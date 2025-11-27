@@ -3,30 +3,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-project = 'Bias Amplification'
-copyright = '2025, Rahul and Bhanu'
-author = 'Rahul Nair and Bhanu Tokas'
-release = '0.1.0'
+project = "Bias Amplification"
+copyright = "2025, Rahul, Ushnesha and Bhanu"
+author = "Rahul Nair, Ushnesha Daripa and Bhanu Tokas"
+release = "0.1.0"
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'numpydoc'
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "numpydoc",
 ]
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
-html_logo = '_static/logo.png'
-html_favicon = '_static/favicon.ico'
-html_title = 'Bias Amplification'
-html_short_title = 'Bias Amplification'
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
+html_logo = "_static/logo.png"
+html_favicon = "_static/favicon.ico"
+html_title = "Bias Amplification"
+html_short_title = "Bias Amplification"
 html_show_sourcelink = False
 html_show_sphinx = False
 html_show_copyright = True
@@ -47,10 +47,10 @@ napoleon_use_rtype = True
 
 # Autodoc settings
 autodoc_default_options = {
-    'members': True,
-    'undoc-members': True,
-    'show-inheritance': True,
-    'inherited-members': False,
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": False,
 }
 
 # Autosummary settings
@@ -58,14 +58,14 @@ autosummary_generate = True
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('<https://docs.python.org/3>', None),
-    'numpy': ('<https://numpy.org/doc/stable/>', None),
-    'pandas': ('<https://pandas.pydata.org/docs/>', None),
-    'torch': ('<https://pytorch.org/docs/stable/>', None),
-    'sklearn': ('<https://scikit-learn.org/stable/>', None),
+    "python": ("<https://docs.python.org/3>", None),
+    "numpy": ("<https://numpy.org/doc/stable/>", None),
+    "pandas": ("<https://pandas.pydata.org/docs/>", None),
+    "torch": ("<https://pytorch.org/docs/stable/>", None),
+    "sklearn": ("<https://scikit-learn.org/stable/>", None),
 }
 
 # NumPy docstring settings
 numpydoc_show_class_members = True
-numpydoc_show_inherited_class_members = False 
+numpydoc_show_inherited_class_members = False
 numpydoc_class_members_toctree = True

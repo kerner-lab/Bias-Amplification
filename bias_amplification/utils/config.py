@@ -16,6 +16,8 @@ DEFAULT_OPTIMIZER = "adam"
 DEFAULT_SCHEDULER = "cosine"
 DEFAULT_AGGREGATION_METHOD = "mean"
 DEFAULT_NUM_TRIALS = 10
+
+
 # ============================================================================
 # UTILS FUNCTIONS
 # ============================================================================
@@ -36,4 +38,3 @@ def normalise(value: Union[float, int, torch.Tensor]) -> Union[float, int, torch
     if value > 1:
         value = value / 100
     return value
-

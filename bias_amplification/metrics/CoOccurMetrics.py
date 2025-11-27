@@ -144,7 +144,7 @@ class BA_Zhao(BaseCoOccurMetric):
         bias_amp = (bias_mask * A_Tpred_probs) - (bias_mask * A_T_probs)
         bias_amp = bias_amp / num_T
         bias_amp_combined = torch.sum(bias_amp)
-        return bias_amp_combined, bias_amp 
+        return bias_amp_combined, bias_amp
 
 
 class DBA(BaseCoOccurMetric):

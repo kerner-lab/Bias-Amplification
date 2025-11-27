@@ -7,5 +7,8 @@ from .CoOccurMetrics import *
 
 __all__ = [
     "Leakage",
-    "DPA"
+    "DPA",
+    "BA_Zhao",
+    "DBA",
+    "MDBA",
 ]
