@@ -168,8 +168,8 @@ class DBA(BaseCoOccurMetric):
         y_at = self.biasCheck(A, T)
         P_T_given_A = self.computeTgivenA(A, T)
         P_Tpred_given_A = self.computeTgivenA(A, T_pred)
-        print(f"{P_T_given_A=}")
-        print(f"{P_Tpred_given_A=}")
+        #print(f"{P_T_given_A=}")
+        #print(f"{P_Tpred_given_A=}")
         delta_at = P_Tpred_given_A - P_T_given_A
         bias_amp = (y_at * delta_at) + ((1 - y_at) * (-1 * delta_at))
         bias_amp = bias_amp / (num_A * num_T)
