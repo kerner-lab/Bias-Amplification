@@ -23,6 +23,7 @@ def ModifiedBCELoss(y_pred, y_true):
     """
     return 1 / bce_loss(y_pred, y_true)
 
+
 def ModifiedMSELoss(y_pred, y_true):
     """
     This function computes the modified version of the MSE loss.

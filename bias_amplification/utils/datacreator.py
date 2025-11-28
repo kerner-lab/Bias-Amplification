@@ -6,7 +6,7 @@ import pandas as pd
 # validator
 def validate_error_percent(error_percent, name):
     """
-    Checks if the error percentage is valid. 
+    Checks if the error percentage is valid.
     It raises an error, otherwise.
 
     Parameters:
@@ -96,9 +96,9 @@ def dataCreator(N=512, error_percent=0.1, shuffle=False, data_error_percent=None
     # Part C: P=1, D=0
     # Part D: P=1, D=1
 
-    M_unbias = D.copy() #Model without bias
-    M2 = D.copy() #Model with bias
-    D_bias = D.copy() #Bias in the data
+    M_unbias = D.copy()  # Model without bias
+    M2 = D.copy()  # Model with bias
+    D_bias = D.copy()  # Bias in the data
 
     num_errors = int(N * error_percent)
     num_data_errors = int(N * data_error_percent)
@@ -108,33 +108,33 @@ def dataCreator(N=512, error_percent=0.1, shuffle=False, data_error_percent=None
     # Third quarter positions
     C_pos = np.array([i for i in range(N // 2, 3 * N // 4)])
 
-    #For M_unbias: introducing balanced error across quarters 1 and 3
-    #Randomly choosing num_errors//2 indices from quarter 1 
+    # For M_unbias: introducing balanced error across quarters 1 and 3
+    # Randomly choosing num_errors//2 indices from quarter 1
     swaps_m_unbias_in_A = np.random.choice(A_pos, num_errors // 2, replace=False)
-    #Randomly choosing other num_errors // 2 indices from quarter 3
+    # Randomly choosing other num_errors // 2 indices from quarter 3
     swaps_m_unbias_in_C = np.random.choice(C_pos, num_errors - num_errors // 2, replace=False)
-    #Flip the chosen indices from M_unbias=0 to M_unbias=1 in quarter 1
+    # Flip the chosen indices from M_unbias=0 to M_unbias=1 in quarter 1
     M_unbias[swaps_m_unbias_in_A] = 1
-    #Flip from M_unbias=1 to M_unbias=0 in corresponding positions in quarter 2
+    # Flip from M_unbias=1 to M_unbias=0 in corresponding positions in quarter 2
     M_unbias[swaps_m_unbias_in_A + (q1)] = 0
-    #Flip the chosen indices from M_unbias=0 to M_unbias=1 in quarter 3
+    # Flip the chosen indices from M_unbias=0 to M_unbias=1 in quarter 3
     M_unbias[swaps_m_unbias_in_C] = 1
-    #Flip from M_unbias=1 to M_unbias=0 in corresponding positions in quarter 4
+    # Flip from M_unbias=1 to M_unbias=0 in corresponding positions in quarter 4
     M_unbias[swaps_m_unbias_in_C + (q1)] = 0
 
     # For M2: introducing all errors in quarter 1 only
-    #Randomly choosing num_errors indices from quarter 1
+    # Randomly choosing num_errors indices from quarter 1
     swaps_m_bias_in_A = np.random.choice(A_pos, num_errors, replace=False)
-    #Flip the chosen indices from M2=0 to M2=1 in quarter 1
+    # Flip the chosen indices from M2=0 to M2=1 in quarter 1
     M2[swaps_m_bias_in_A] = 1
-    #Flip from M2=1 to M2=0 in corresponding positions in quarter 4
+    # Flip from M2=1 to M2=0 in corresponding positions in quarter 4
     M2[swaps_m_bias_in_A + (q3)] = 0
-    
-    #For D_bias: introducing bias in quarter 1 only in the data
+
+    # For D_bias: introducing bias in quarter 1 only in the data
     swaps_d_bias_in_A = np.random.choice(A_pos, num_data_errors, replace=False)
-    #Flip the chosen indices from D_bias=0 to D_bias=1 in quarter 1
+    # Flip the chosen indices from D_bias=0 to D_bias=1 in quarter 1
     D_bias[swaps_d_bias_in_A] = 1
-    #Flip from D_bias=1 to D_bias=0 in corresponding positions in quarter 4
+    # Flip from D_bias=1 to D_bias=0 in corresponding positions in quarter 4
     D_bias[swaps_d_bias_in_A + (q3)] = 0
 
     if shuffle:
