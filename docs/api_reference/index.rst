@@ -11,6 +11,7 @@ Metrics
    :maxdepth: 2
 
    metrics
+   co_occur
 
 Utilities
 ---------

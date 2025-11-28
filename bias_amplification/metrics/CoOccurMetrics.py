@@ -8,11 +8,16 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-# TODO: Add Documentation. Add note on thresholding inputs before giving to the models. (Doesn't work for probabilities.)
-
-
-# Class Definition
+# ============================================================================
+# BASE CO-OCCURRENCE METRIC
+# ============================================================================
 class BaseCoOccurMetric(ABC):
+    """
+    Abstract base class for co-occurrence-based bias amplification metrics.
+    
+    This class provides common functionality for computing probabilities 
+    and bias amplification computations.
+    """
 
     def __init__(self):
         pass
@@ -32,11 +37,9 @@ class BaseCoOccurMetric(ABC):
         -------
         probs : torch.tensor
             of the shape (a x t). Represents the joint probability for each A-T pair.
-
         """
         num_obs = A.shape[0]
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
-        # probs = probs/probs.sum()
         probs = probs / num_obs  # Works better if multi-class is possible
         return probs
 
@@ -53,7 +56,6 @@ class BaseCoOccurMetric(ABC):
         -------
         probs : torch.tensor
             Float tensor representing probabilities for each category.
-
         """
         probs = vals.mean(axis=0)
         return probs
@@ -73,18 +75,9 @@ class BaseCoOccurMetric(ABC):
         -------
         probs : torch.tensor
             of the shape (a x t). Represents the conditional probability P(A|T) for each A-T pair.
-
         """
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
         probs = probs / probs.sum(axis=0).clamp(min=1e-10)
-        # num_A = A.shape[1]
-        # num_T = T.shape[1]
-        # sum_T = T.sum(axis=0)
-        # probs = torch.zeros((num_A, num_T))
-        # for T_pos in range(num_T):
-        #     curr_A = A[T[:, T_pos] == 1]
-        #     curr_A_probs = curr_A.sum(axis=0) / sum_T[T_pos]
-        #     probs[:, T_pos] = curr_A_probs
         return probs
 
     def computeTgivenA(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
@@ -102,45 +95,96 @@ class BaseCoOccurMetric(ABC):
         -------
         probs : torch.tensor
             of the shape (a x t). Represents the conditional probability P(T|A) for each A-T pair.
-
         """
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
         probs = probs / probs.sum(axis=1).clamp(min=1e-10)
-        # num_A = A.shape[1]
-        # num_T = T.shape[1]
-        # sum_A = A.sum(axis=0)
-        # probs = torch.zeros((num_A, num_T))
-        # for A_pos in range(num_A):
-        #     curr_T = T[A[:, A_pos] == 1]
-        #     curr_T_probs = curr_T.sum(axis=0) / sum_A[A_pos]
-        #     probs[A_pos] = curr_T_probs
         return probs
 
     @abstractmethod
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> torch.tensor:
+        """
+        Abstract method to compute bias amplification. Subclasses must implement this method to compute the bias amplification for each A-T pair.
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t)
+        T_pred : torch.tensor
+            Binary tensor of shape (N x t)
+
+        Returns
+        -------
+        bias_amp_combined : torch.tensor
+            Scalar representing mean bias amplification across all pairs
+        bias_amp : torch.tensor
+            Tensor of shape (a x t) representing bias amplification for each A-T pair
+        """
         pass
 
 
 class BA_Zhao(BaseCoOccurMetric):
+    """
+    Bias Amplification Metric from Zhao et al. (2021).
+    This metric computes bias amplification by comparing the conditional 
+    probabilities of A given T and A given T_pred.
+    """
 
     def __init__(self):
         super().__init__()
 
-    def biasCheck(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+    def check_bias(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+        """
+        Checks if each A-T pair exhibits statistical dependence (positive correlation).
+        Uses independence test: P(A,T) > P(A)P(T)
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t) - represents ONE attribute combination
+
+        Returns
+        -------
+        is_biased : torch.tensor
+            Binary mask of shape (a x t) indicating positively correlated pairs
+        """
         P_A_given_T = self.computeAgivenT(A, T)
         num_A = A.shape[1]
         is_biased = P_A_given_T > (1 / num_A)
-        return is_biased
+        return is_biased.float()
 
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> tuple[torch.tensor, torch.tensor]:
+        """
+        Computes bias amplification by comparing the conditional 
+        probabilities of A given T and A given T_pred.
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t)
+        T_pred : torch.tensor
+            Binary tensor of shape (N x t)
+
+        Returns
+        -------
+        bias_amp_combined : torch.tensor
+            Scalar representing mean bias amplification across all pairs
+        bias_amp : torch.tensor
+            Tensor of shape (a x t) representing bias amplification for each A-T pair
+        """
         num_T = T.shape[1]
         A_T_probs = self.computePairProbs(A, T)
         A_Tpred_probs = self.computePairProbs(A, T_pred)
-        bias_mask = self.biasCheck(A, T)
+        bias_mask = self.check_bias(A, T)
         bias_amp = (bias_mask * A_Tpred_probs) - (bias_mask * A_T_probs)
         bias_amp = bias_amp / num_T
         bias_amp_combined = torch.sum(bias_amp)
@@ -148,11 +192,34 @@ class BA_Zhao(BaseCoOccurMetric):
 
 
 class DBA(BaseCoOccurMetric):
+    """
+    Bias Amplification Metric from Directional Bias Amplification.
+    This metric computes bias amplification that addresses on the shortcomings
+    of Zhao's metric by focusing on both positive and negative correlations, 
+    and the direction of amplification through comparing the conditional 
+    probabilities of A given T and A given T_pred. 
+    """
 
     def __init__(self):
         super().__init__()
 
-    def biasCheck(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+    def check_bias(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+        """
+        Checks if each A-T pair exhibits statistical dependence (positive correlation).
+        Uses independence test: P(A,T) > P(A)P(T)
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t) - represents ONE attribute combination
+
+        Returns
+        -------
+        y_at : torch.tensor
+            Binary mask of shape (a x t) indicating positively correlated pairs
+        """
         joint_probs = self.computePairProbs(A, T)
         A_probs = self.computeProbs(A).reshape(-1, 1)
         T_probs = self.computeProbs(T).reshape(-1, 1)
@@ -163,9 +230,29 @@ class DBA(BaseCoOccurMetric):
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> tuple[torch.tensor, torch.tensor]:
+        """
+        Computes bias amplification by comparing the conditional 
+        probabilities of A given T and A given T_pred.
+
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t)
+        T_pred : torch.tensor
+            Binary tensor of shape (N x t)
+
+        Returns
+        -------
+        bias_amp_combined : torch.tensor
+            Scalar representing mean bias amplification across all pairs
+        bias_amp : torch.tensor
+            Tensor of shape (a x t) representing bias amplification for each A-T pair
+        """
         num_A = A.shape[1]
         num_T = T.shape[1]
-        y_at = self.biasCheck(A, T)
+        y_at = self.check_bias(A, T)
         P_T_given_A = self.computeTgivenA(A, T)
         P_Tpred_given_A = self.computeTgivenA(A, T_pred)
         print(f"{P_T_given_A=}")
@@ -183,6 +270,25 @@ class DBA(BaseCoOccurMetric):
         T: torch.tensor,
         T_pred: torch.tensor,
     ) -> dict[str, tuple[torch.tensor, torch.tensor]]:
+        """
+        Computes bidirectional bias amplification for AtoT and TtoA directions.
+        Parameters
+        ----------
+        A : torch.tensor
+            Binary tensor of shape (N x a)
+        A_pred : torch.tensor
+            Binary tensor of shape (N x a)
+        T : torch.tensor
+            Binary tensor of shape (N x t)
+        T_pred : torch.tensor
+            Binary tensor of shape (N x t)
+
+        Returns
+        -------
+        bias_amp : dict
+            Dictionary with keys 'AtoT' and 'TtoA', each containing
+            (mean, variance) tuples
+        """
         bias_amp_AT = self.computeBiasAmp(A, T, T_pred)
         bias_amp_TA = self.computeBiasAmp(T, A, A_pred)
         bias_amp = {"AtoT": bias_amp_AT, "TtoA": bias_amp_TA}
@@ -190,13 +296,19 @@ class DBA(BaseCoOccurMetric):
 
 
 class MDBA(BaseCoOccurMetric):
+    """
+    Multi-Attribute Directional Bias Amplification Metric.
+    This metric computes bias amplification that addresses on the shortcomings
+    of DBA by focusing on multi-attribute combinations through comparing the conditional 
+    probabilities of A given T and A given T_pred. 
+    """
 
     def __init__(self, min_attr_size: int = 1, max_attr_size: int = None):
         super().__init__()
         self.min_attr_size = min_attr_size
         self.max_attr_size = max_attr_size
 
-    def biasCheck(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
+    def check_bias(self, A: torch.tensor, T: torch.tensor) -> torch.tensor:
         """
         Checks if each A-T pair exhibits statistical dependence (positive correlation).
         Uses independence test: P(A,T) > P(A)P(T)
@@ -314,7 +426,7 @@ class MDBA(BaseCoOccurMetric):
             m_pred_tensor = m_pred_tensor.reshape(-1, 1)
 
             # Check which A-m pairs are positively correlated in the data
-            y_am = self.biasCheck(A, m_tensor)
+            y_am = self.check_bias(A, m_tensor)
 
             # Compute conditional probabilities P(m|A) for data and predictions
             P_m_given_A = self.computeTgivenA(A, m_tensor)
