@@ -56,7 +56,7 @@ Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amp
       # Compute bias amplification
       bias_amp_combined, bias_amp = ba_zhao.computeBiasAmp(A, T, T_pred)
 
-DBA (Differential Bias Amplification)
+DBA (Directional Bias Amplification)
 --------------------------------------
 
 Bias Amplification Metric that addresses shortcomings of BA_Zhao by focusing on both positive and negative correlations, and the direction of amplification.
@@ -95,7 +95,7 @@ Bias Amplification Metric that addresses shortcomings of BA_Zhao by focusing on 
       )
       # Returns dict with keys 'AtoT' and 'TtoA'
 
-MDBA (Multi-Dimensional Bias Amplification)
+MDBA (Multi-Attribute Directional Bias Amplification)
 --------------------------------------------
 
 Multi-Attribute Directional Bias Amplification Metric that extends DBA to handle multi-dimensional attribute combinations, computing bias amplification across all possible attribute combinations.
