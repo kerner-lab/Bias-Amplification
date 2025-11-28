@@ -12,10 +12,16 @@ Main modules:
 
 __version__ = "0.1.0"
 
-from .metrics.PredMetrics_v1 import Leakage, DPA
+from .metrics.PredMetrics import BasePredictabilityMetric, Leakage, DPA
+from .metrics.CoOccurMetrics import BaseCoOccurMetric, BA_Zhao, DBA, MDBA
 
 __all__ = [
     "Leakage",
     "DPA",
+    "BasePredictabilityMetric",
+    "BaseCoOccurMetric",
+    "BA_Zhao",
+    "DBA",
+    "MDBA",
     "__version__",
 ]

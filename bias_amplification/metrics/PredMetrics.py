@@ -56,7 +56,6 @@ class BasePredictabilityMetric(ABC):
         self.initialize_eval_metrics(eval_metric)
         self.defineModel()
 
-<<<<<<< HEAD
     # ============================================================================
     # TRAINING METHODS
     # ============================================================================
@@ -80,19 +79,6 @@ class BasePredictabilityMetric(ABC):
         """
         
         attacker_model, optimizer, criterion = self.train_setup(attacker_mode)
-=======
-    def train(
-        self,
-        x: torch.tensor,
-        y: torch.tensor,
-        attacker_mode: str,
-    ) -> torch.tensor:
-        self.defineModel()
-        model = getattr(self, "attacker_" + attacker_mode)
-        criterion = self.loss_functions[self.train_params["loss_function"]]
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.train_params["learning_rate"])
-        batches = math.ceil(len(x) / self.train_params["batch_size"])
->>>>>>> origin/main
 
         print(f"Training Activated for Mode: {attacker_mode}")
 
@@ -308,14 +294,9 @@ class BasePredictabilityMetric(ABC):
         """
         if test_size == None:
             test_size = self.test_size
-<<<<<<< HEAD
 
         feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
             train_test_split(feat, data, pred, test_size=test_size)
-=======
-        feat_train, feat_test, data_train, data_test, pred_train, pred_test = train_test_split(
-            feat, data, pred, test_size=test_size
->>>>>>> origin/main
         )
         return feat_train, feat_test, data_train, data_test, pred_train, pred_test
 
@@ -360,7 +341,6 @@ class BasePredictabilityMetric(ABC):
         # compute data 
         pert_data_train = self.permuteData(data_train, mode)
         pert_data_test = self.permuteData(data_test, mode)
-<<<<<<< HEAD
         self.train(feat_train, pert_data_train, "D" + mode_suffix)
         lambda_d = self.calcLambda(
             getattr(self, "attacker_D" + mode_suffix), feat_test, pert_data_test
@@ -376,122 +356,12 @@ class BasePredictabilityMetric(ABC):
 
         # return computed leakage
         return self.compute_leakage(lambda_d, lambda_m, self.normalized)
-=======
-        self.train(feat_train, pert_data_train, "D" + mode)
-        lambda_d = self.calcLambda(getattr(self, "attacker_D" + mode), feat_test, pert_data_test)
-        self.train(feat_train, pred_train, "M" + mode)
-        lambda_m = self.calcLambda(getattr(self, "attacker_M" + mode), feat_test, pred_test)
-        print(f"{lambda_d=},\n{lambda_m=}")
-        if self.normalized:
-            leakage = (lambda_m - lambda_d) / (lambda_m + lambda_d)
-        else:
-            leakage = lambda_m - lambda_d
-        return leakage
->>>>>>> origin/main
 
 
     def calcLambda(
         self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor, **kwargs
     ) -> torch.tensor:
-<<<<<<< HEAD
         """ Calculate the lambda value for a given attacker model, input data and target data."""
-=======
-        pass
-
-    @abstractmethod
-    def defineModel(self):
-        pass
-
-
-# Leakage
-class Leakage(BasePredictabilityMetric):
-
-    def __init__(
-        self,
-        model_params: dict,
-        train_params: dict,
-        model_acc: float,
-        eval_metric: Union[Callable, str] = "mse",
-        threshold=True,
-        normalized=True,
-    ) -> None:
-        """
-        Parameters
-        ----------
-        model_params : dict
-            Dictionary of the following forms-
-            {"attacker" : model}
-        train_params : dict
-            {
-                "learning_rate": The learning rate hyperparameter,
-                "loss_function": The loss function to be used.
-                        Existing options: ["mse", "cross-entropy"],
-                "epochs": Number of training epochs to be set,
-                "batch_size: Number of batches per epoch
-            }
-        model_acc : float
-            The accuracy of the model being tested for quality equalization.
-            For bidirectional case, send dict of the form {'AtoT': acc_AtoT, 'TtoA': acc_TtoA}
-        eval_metric : Union[Callable,str], optional
-            Either a Callable of the form eval_metric(y_pred, y)
-            or a string to utilize exiting methods.
-            Existing options include ["accuracy"]
-            The default is "mse".
-
-        Returns
-        -------
-        None
-            Initializes the class.
-
-        """
-        self.model_params = model_params
-        self.train_params = train_params
-        self.threshold = threshold
-        self.model_acc = model_acc
-        self.normalized = False
-        super().__init__(self.model_acc, eval_metric)
-
-    def defineModel(self) -> None:
-        self.attacker_D = self.model_params["attacker"]
-        self.attacker_M = copy.deepcopy(self.attacker_D)
-
-    def getAmortizedLeakage(
-        self,
-        feat_train: torch.tensor,
-        data_train: torch.tensor,
-        pred_train: torch.tensor,
-        num_trials: int = 10,
-        method: str = "mean",
-        feat_test: torch.tensor = None,
-        data_test: torch.tensor = None,
-        pred_test: torch.tensor = None,
-    ) -> tuple[torch.tensor, torch.tensor]:
-        if feat_test == None:
-            feat_train, feat_test, data_train, data_test, pred_train, pred_test = self.split(
-                feat_train, data_train, pred_train, test_size=0.2
-            )
-        vals = torch.zeros(num_trials)
-        for i in range(num_trials):
-            print(f"Working on Trial: {i}")
-            vals[i] = self.calcLeak(
-                feat_train,
-                data_train,
-                pred_train,
-                feat_test,
-                data_test,
-                pred_test,
-                mode=None,
-            )
-            print(f"Trial {i} val: {vals[i]}")
-        if method == "mean":
-            return torch.mean(vals), torch.std(vals)
-        elif method == "median":
-            return torch.median(vals), torch.std(vals)
-        else:
-            raise ValueError("Invalid Method given for Amortization.")
-
-    def calcLambda(self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor) -> torch.tensor:
->>>>>>> origin/main
         y_pred = model(x)
         if self.threshold:
             y_pred = (y_pred > config.DEFAULT_PREDICTION_THRESHOLD).float()
@@ -552,13 +422,8 @@ class Leakage(BasePredictabilityMetric):
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation".
         """
         if feat_test == None:
-<<<<<<< HEAD
             feat_train, feat_test, data_train, data_test, pred_train, pred_test = (
                 self.split(feat_train, data_train, pred_train, test_size=config.DEFAULT_TEST_SIZE)
-=======
-            feat_train, feat_test, data_train, data_test, pred_train, pred_test = self.split(
-                feat_train, data_train, pred_train, test_size=0.2
->>>>>>> origin/main
             )
        
         vals = torch.zeros(num_trials)
@@ -582,7 +447,6 @@ class Leakage(BasePredictabilityMetric):
         else:
             raise ValueError("Invalid Method given for Amortization.")
 
-<<<<<<< HEAD
     def _getFormattedLeakage(self, agg: torch.tensor, std: torch.tensor) -> str:
         return f"{agg:.4f} ± {std:.4f}"
         
@@ -850,13 +714,6 @@ class DPA(BasePredictabilityMetric):
             data_test=data_test, 
             pred_test=pred_test
         )
-=======
-    def calcLambda(self, model: torch.nn.Module, x: torch.tensor, y: torch.tensor) -> torch.tensor:
-        y_pred = model(x)
-        if self.threshold:
-            y_pred = y_pred > 0.5
-        return self.eval_metric(y_pred, y)
->>>>>>> origin/main
 
     def calcBidirectional(
         self,
@@ -926,7 +783,6 @@ if __name__ == "__main__":
         1, 1, 1, numFirst=1, activations=["sigmoid", "sigmoid", "sigmoid"]
     )
 
-<<<<<<< HEAD
     train_config = {
         "learning_rate": 0.05,
         "loss_function": "bce",
@@ -935,9 +791,6 @@ if __name__ == "__main__":
     }
 
     #Leakage Parameter Initialization
-=======
-    # Leakage Parameter Initialization
->>>>>>> origin/main
     leakage_obj = Leakage(
         attacker_model=attackerModel,
         train_params=train_config,
@@ -969,7 +822,6 @@ if __name__ == "__main__":
     # print("="*50)
     # print("="*50)
 
-<<<<<<< HEAD
 
     
     # # Parameter Initialization
@@ -980,21 +832,6 @@ if __name__ == "__main__":
     #     model_acc=model_1_acc,
     #     eval_metric="accuracy"
     # )
-=======
-    # Parameter Initialization
-    dpa_obj = DPA(
-        {"attacker_AtoT": attackerModel, "attacker_TtoA": attackerModel},
-        {
-            "learning_rate": 0.05,
-            "loss_function": "bce",
-            "epochs": 100,
-            "batch_size": 64,
-        },
-        model_1_acc,
-        "accuracy",
-        threshold=True,
-    )
->>>>>>> origin/main
 
     # print("="*50)
     # print(f"Getting Amortized Leakage for DPA Metric")
