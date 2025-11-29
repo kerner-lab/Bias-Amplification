@@ -97,7 +97,7 @@ class BaseCoOccurMetric(ABC):
             of the shape (a x t). Represents the conditional probability P(T|A) for each A-T pair.
         """
         probs = A.T @ T  # (num_A, num_obs) x (num_obs, num_T) = (num_A, num_T)
-        probs = probs / probs.sum(axis=1).clamp(min=1e-10)
+        probs = probs / probs.sum(axis=1, keepdim=True).clamp(min=1e-10)
         return probs
 
     @abstractmethod
