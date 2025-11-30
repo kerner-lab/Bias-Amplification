@@ -494,7 +494,7 @@ class BasePredictabilityMetric(ABC):
                     f"Metric '{metric}' Option is unavailable. User must choose from {list(self.eval_functions.keys())}"
                 )
         else:
-            raise ValueError("Invalid Metric '{metric}' Given.")
+            raise ValueError(f"Invalid Metric '{metric}' Given.")
 
     # ============================================================================
     # ABSTRACT METHODS
@@ -517,7 +517,6 @@ class Leakage(BasePredictabilityMetric):
         self,
         attacker_model: torch.nn.Module,
         train_params: Dict[str, Any],
-        model_acc: float,
         eval_metric: Union[Callable, str] = config.DEFAULT_EVAL_METRIC,
         threshold: bool = True,
         normalized: bool = False,
@@ -552,7 +551,7 @@ class Leakage(BasePredictabilityMetric):
 
         """
         model_params = {"attacker": attacker_model}
-        super().__init__(model_params, train_params, model_acc, eval_metric, threshold, normalized)
+        super().__init__(model_params, train_params, eval_metric, threshold, normalized)
 
     def defineModel(self) -> None:
         """
@@ -626,7 +625,6 @@ class DPA(BasePredictabilityMetric):
         attacker_AtoT: torch.nn.Module,
         attacker_TtoA: torch.nn.Module,
         train_params: Dict[str, Any],
-        model_acc: Union[float, dict],
         eval_metric: Union[Callable, str] = config.DEFAULT_EVAL_METRIC,
         threshold: bool = True,
         normalized: bool = True,
@@ -663,7 +661,7 @@ class DPA(BasePredictabilityMetric):
 
         """
         model_params = {"attacker_AtoT": attacker_AtoT, "attacker_TtoA": attacker_TtoA}
-        super().__init__(model_params, train_params, model_acc, eval_metric, threshold, normalized)
+        super().__init__(model_params, train_params, eval_metric, threshold, normalized)
 
     def defineModel(self) -> None:
         """
@@ -818,7 +816,6 @@ if __name__ == "__main__":
     leakage_obj = Leakage(
         attacker_model=attackerModel,
         train_params=train_config,
-        model_acc=model_1_acc,
         eval_metric="accuracy",
     )
     print("=" * 50)

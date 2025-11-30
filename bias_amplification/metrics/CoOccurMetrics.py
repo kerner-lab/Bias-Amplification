@@ -123,7 +123,7 @@ class BaseCoOccurMetric(ABC):
         pass
 
 
-class BA_Zhao(BaseCoOccurMetric):
+class BA_MALS(BaseCoOccurMetric):
 
     def __init__(self):
         super().__init__()
