@@ -29,7 +29,6 @@ class BasePredictabilityMetric(ABC):
         self,
         model_params: Dict[str, torch.nn.Module],
         train_params: Dict[str, Any],
-        model_acc: Union[float, dict],
         eval_metric: Union[Callable, str] = config.DEFAULT_EVAL_METRIC,
         threshold: bool = True,
         normalized: bool = False,
@@ -38,7 +37,6 @@ class BasePredictabilityMetric(ABC):
         self.model_params = model_params
         self.train_params = train_params
         self.threshold = threshold
-        self.model_acc = model_acc
         self.normalized = normalized
         self.test_size = test_size
 
@@ -256,7 +254,7 @@ class BasePredictabilityMetric(ABC):
                 f"{value_name} must be of type float, int, or torch.Tensor, got {type(value)}"
             )
 
-    def permuteData(self, data: torch.tensor, mode: str = "AtoT") -> torch.tensor:
+    def permuteData(self, data: torch.tensor, model_acc: float, mode: str = "AtoT") -> torch.tensor:
         """
         This function permutes data for quality equalization to maintain the accuracy of the model.
         Ground truth data assumed to be binary values in a pytorch tensor but intended to work for any NxM type array.
@@ -265,6 +263,8 @@ class BasePredictabilityMetric(ABC):
         ----------
         data : torch.tensor
             Original ground truth data.
+        model_acc : float
+            Accuracy of the model (A' or T')  w.r.t (A or T) - used for quality equalization.
         mode : str
             Mode identifier for the attacker model
 
@@ -274,29 +274,29 @@ class BasePredictabilityMetric(ABC):
             Randomly pertubed data matching the specified model accuracy.
         """
 
-        if isinstance(self.model_acc, (float, int, torch.Tensor)):
-            self._validate_model_acc_value(self.model_acc, "model_acc")
-            self.model_acc = config.normalise(self.model_acc)
+        if isinstance(model_acc, (float, int, torch.Tensor)):
+            self._validate_model_acc_value(model_acc, "model_acc")
+            model_acc = config.normalise(model_acc)
             curr_model_acc = (
-                self.model_acc.item()
-                if isinstance(self.model_acc, torch.Tensor)
-                else float(self.model_acc)
+                model_acc.item()
+                if isinstance(model_acc, torch.Tensor)
+                else float(model_acc)
             )
-        elif isinstance(self.model_acc, dict):
-            if mode not in self.model_acc:
+        elif isinstance(model_acc, dict):
+            if mode not in model_acc:
                 raise ValueError(
-                    f"mode '{mode}' not found in model_acc dictionary. Available keys: {list(self.model_acc.keys())}"
+                    f"mode '{mode}' not found in model_acc dictionary. Available keys: {list(model_acc.keys())}"
                 )
-            if not isinstance(self.model_acc[mode], (float, int, torch.Tensor)):
+            if not isinstance(model_acc[mode], (float, int, torch.Tensor)):
                 raise ValueError(
-                    f"model_acc['{mode}'] must be float, int, or torch.Tensor, got {type(self.model_acc[mode])}"
+                    f"model_acc['{mode}'] must be float, int, or torch.Tensor, got {type(model_acc[mode])}"
                 )
-            self._validate_model_acc_value(self.model_acc[mode], f"model_acc['{mode}']")
-            self.model_acc[mode] = config.normalise(self.model_acc[mode])
+            self._validate_model_acc_value(model_acc[mode], f"model_acc['{mode}']")
+            model_acc[mode] = config.normalise(model_acc[mode])
             curr_model_acc = (
-                self.model_acc[mode].item()
-                if isinstance(self.model_acc[mode], torch.Tensor)
-                else float(self.model_acc[mode])
+                model_acc[mode].item()
+                if isinstance(model_acc[mode], torch.Tensor)
+                else float(model_acc[mode])
             )
         else:
             raise ValueError(
@@ -365,9 +365,12 @@ class BasePredictabilityMetric(ABC):
         """
         mode_suffix = "_" + mode if mode else ""
 
+        model_acc_train = torch.sum(data_train == pred_train) / data_train.shape[0]
+        model_acc_test = torch.sum(data_test == pred_test) / data_test.shape[0]
+
         # compute data
-        pert_data_train = self.permuteData(data_train, mode)
-        pert_data_test = self.permuteData(data_test, mode)
+        pert_data_train = self.permuteData(data_train, model_acc_train, mode)
+        pert_data_test = self.permuteData(data_test, model_acc_test, mode)
         self.train(feat_train, pert_data_train, "D" + mode_suffix)
         lambda_d = self.calcLambda(
             getattr(self, "attacker_D" + mode_suffix), feat_test, pert_data_test
