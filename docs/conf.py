@@ -6,16 +6,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 project = "Bias Amplification"
 copyright = "2025, Rahul, Ushnesha and Bhanu"
 author = "Rahul Nair, Ushnesha Daripa and Bhanu Tokas"
-release = "0.1.0"
+release = "0.1.2"
 
 extensions = [
+    "numpydoc",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "numpydoc",
 ]
 
 templates_path = ["_templates"]

@@ -126,12 +126,7 @@ class BaseCoOccurMetric(ABC):
         pass
 
 
-class BA_Zhao(BaseCoOccurMetric):
-    """
-    Bias Amplification Metric from Zhao et al. (2021).
-    This metric computes bias amplification by comparing the conditional 
-    probabilities of A given T and A given T_pred.
-    """
+class BA_MALS(BaseCoOccurMetric):
 
     def __init__(self):
         super().__init__()
@@ -255,8 +250,8 @@ class DBA(BaseCoOccurMetric):
         y_at = self.check_bias(A, T)
         P_T_given_A = self.computeTgivenA(A, T)
         P_Tpred_given_A = self.computeTgivenA(A, T_pred)
-        #print(f"{P_T_given_A=}")
-        #print(f"{P_Tpred_given_A=}")
+        # print(f"{P_T_given_A=}")
+        # print(f"{P_Tpred_given_A=}")
         delta_at = P_Tpred_given_A - P_T_given_A
         bias_amp = (y_at * delta_at) + ((1 - y_at) * (-1 * delta_at))
         bias_amp = bias_amp / (num_A * num_T)
