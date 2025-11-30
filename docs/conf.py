@@ -9,13 +9,13 @@ author = "Rahul Nair, Ushnesha Daripa and Bhanu Tokas"
 release = "0.1.1"
 
 extensions = [
+    "numpydoc",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "numpydoc",
 ]
 
 templates_path = ["_templates"]
