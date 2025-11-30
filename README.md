@@ -5,15 +5,12 @@ A library for measuring bias amplification and information leakage in machine le
 ## Installation
 
 ```bash
-pip install -e .
+pip install bias-amplification
 ```
 
 ## Quick Start
 
-```python
-from bias_amplification import Leakage
-from bias_amplification.attacker_models import simpleDenseModel
-```
+Check out demo notebook [here](https://colab.research.google.com/drive/161CRQSiy8zF3yBNlCHPJGBgRhZhQ72u9?usp=sharing)
 
 ## License
 
