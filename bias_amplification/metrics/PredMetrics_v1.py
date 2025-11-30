@@ -278,9 +278,7 @@ class BasePredictabilityMetric(ABC):
             self._validate_model_acc_value(model_acc, "model_acc")
             model_acc = config.normalise(model_acc)
             curr_model_acc = (
-                model_acc.item()
-                if isinstance(model_acc, torch.Tensor)
-                else float(model_acc)
+                model_acc.item() if isinstance(model_acc, torch.Tensor) else float(model_acc)
             )
         elif isinstance(model_acc, dict):
             if mode not in model_acc:
