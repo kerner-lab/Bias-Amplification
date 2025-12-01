@@ -3,7 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 import sys
 from pathlib import Path
-from typing import Tuple
+from typing import Literal, Union, Callable, Tuple, Optional, Dict, Any
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -265,7 +265,7 @@ class DBA(BaseCoOccurMetric):
         A_pred: torch.tensor,
         T: torch.tensor,
         T_pred: torch.tensor,
-    ) -> dict[str, Tuple[torch.tensor, torch.tensor]]:
+    ) -> Dict[str, Tuple[torch.tensor, torch.tensor]]:
         """
         Computes bidirectional bias amplification for AtoT and TtoA directions.
         Parameters
@@ -462,7 +462,7 @@ class MDBA(BaseCoOccurMetric):
         A_pred: torch.tensor,
         T: torch.tensor,
         T_pred: torch.tensor,
-    ) -> dict[str, Tuple[torch.tensor, torch.tensor]]:
+    ) -> Dict[str, Tuple[torch.tensor, torch.tensor]]:
         """
         Computes bidirectional bias amplification.
 
@@ -497,7 +497,7 @@ class MDBA(BaseCoOccurMetric):
     def getAttributeCombinationStats(
         self,
         T: torch.tensor,
-    ) -> dict:
+    ) -> Dict:
         """
         Get statistics about attribute combinations in the dataset.
         Useful for understanding the dataset structure.
