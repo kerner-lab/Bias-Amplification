@@ -4,7 +4,7 @@ Leakage Module
 BasePredictabilityMetric
 -------------------------
 
-.. autoclass:: bias_amplification.metrics.BasePredictabilityMetric
+.. autoclass:: bias_amplification.metrics.PredMetrics.BasePredictabilityMetric
    :members:
    :undoc-members:
    :show-inheritance:
@@ -13,7 +13,7 @@ BasePredictabilityMetric
 Leakage
 -------
 
-.. autoclass:: bias_amplification.metrics.Leakage
+.. autoclass:: bias_amplification.metrics.PredMetrics.Leakage
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ Leakage
 
    .. code-block:: python
 
-      from bias_amplification import Leakage
+      from bias_amplification.metrics.PredMetrics import Leakage
       from bias_amplification.attacker_models import simpleDenseModel
       import torch
 
@@ -55,7 +55,7 @@ Leakage
 DPA (Directional Predictability Amplification)
 ------------------------------------------
 
-.. autoclass:: bias_amplification.metrics.DPA
+.. autoclass:: bias_amplification.metrics.PredMetrics.DPA
    :members:
    :undoc-members:
    :show-inheritance:
@@ -65,7 +65,7 @@ DPA (Directional Predictability Amplification)
 
    .. code-block:: python
 
-      from bias_amplification import DPA
+      from bias_amplification.metrics.PredMetrics import DPA
       from bias_amplification.attacker_models import simpleDenseModel
 
       # Create attacker models
