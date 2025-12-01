@@ -3,6 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 import sys
 from pathlib import Path
+from typing import Tuple
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -155,7 +156,7 @@ class BA_MALS(BaseCoOccurMetric):
 
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         Computes bias amplification by comparing the conditional
         probabilities of A given T and A given T_pred.
@@ -224,7 +225,7 @@ class DBA(BaseCoOccurMetric):
 
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         Computes bias amplification by comparing the conditional
         probabilities of A given T and A given T_pred.
@@ -264,7 +265,7 @@ class DBA(BaseCoOccurMetric):
         A_pred: torch.tensor,
         T: torch.tensor,
         T_pred: torch.tensor,
-    ) -> dict[str, tuple[torch.tensor, torch.tensor]]:
+    ) -> dict[str, Tuple[torch.tensor, torch.tensor]]:
         """
         Computes bidirectional bias amplification for AtoT and TtoA directions.
         Parameters
@@ -330,7 +331,7 @@ class MDBA(BaseCoOccurMetric):
     def _generateAttributeCombinations(
         self,
         T: torch.tensor,
-    ) -> list[tuple[torch.tensor, tuple]]:
+    ) -> list[Tuple[torch.tensor, Tuple]]:
         """
         Generate all combinations of attributes for multi-attribute analysis.
 
@@ -341,7 +342,7 @@ class MDBA(BaseCoOccurMetric):
 
         Returns
         -------
-        combinations : list[tuple[torch.tensor, tuple]]
+        combinations : list[Tuple[torch.tensor, Tuple]]
             List of (tensor, indices) tuples where:
             - tensor: binary mask of shape (N x 1) indicating presence of combination
             - indices: tuple of attribute indices in the combination
@@ -371,7 +372,7 @@ class MDBA(BaseCoOccurMetric):
 
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         Computes Multi-Dimensional Bias Amplification from A to T.
 
@@ -461,7 +462,7 @@ class MDBA(BaseCoOccurMetric):
         A_pred: torch.tensor,
         T: torch.tensor,
         T_pred: torch.tensor,
-    ) -> dict[str, tuple[torch.tensor, torch.tensor]]:
+    ) -> dict[str, Tuple[torch.tensor, torch.tensor]]:
         """
         Computes bidirectional bias amplification.
 

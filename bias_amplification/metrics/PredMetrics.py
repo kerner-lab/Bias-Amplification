@@ -314,7 +314,7 @@ class BasePredictabilityMetric(ABC):
         data: torch.tensor,
         pred: torch.tensor,
         test_size: Union[float, None] = None,
-    ) -> tuple[torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
         """
         Splits the data into training and testing sets.
         """
@@ -412,7 +412,7 @@ class BasePredictabilityMetric(ABC):
         feat_test: torch.tensor = None,
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         This function computes the average amortized leakage for a given protected attribute,
         ground truth data and predicted values.
@@ -443,7 +443,7 @@ class BasePredictabilityMetric(ABC):
 
         Returns
         -------
-        tuple[torch.tensor, torch.tensor]
+        Tuple[torch.tensor, torch.tensor]
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation".
         """
         if feat_test == None:
@@ -570,7 +570,7 @@ class Leakage(BasePredictabilityMetric):
         feat_test: torch.tensor = None,
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         This function calls the base class method to compute the amortized leakage
         for the Leakage metric.
@@ -596,7 +596,7 @@ class Leakage(BasePredictabilityMetric):
 
         Returns
         -------
-        tuple[torch.tensor, torch.tensor]
+        Tuple[torch.tensor, torch.tensor]
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
             for the Leakage metric.
         """
@@ -689,7 +689,7 @@ class DPA(BasePredictabilityMetric):
         feat_test: torch.tensor = None,
         data_test: torch.tensor = None,
         pred_test: torch.tensor = None,
-    ) -> tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[torch.tensor, torch.tensor]:
         """
         This function calls the base class method to compute the amortized leakage
         for the DPA metric.
@@ -720,7 +720,7 @@ class DPA(BasePredictabilityMetric):
 
         Returns
         -------
-        tuple[torch.tensor, torch.tensor]
+        Tuple[torch.tensor, torch.tensor]
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
             for the DPA metric.
         """
@@ -744,7 +744,7 @@ class DPA(BasePredictabilityMetric):
         T_pred: torch.tensor,
         num_trials: int = config.DEFAULT_NUM_TRIALS,
         method: str = config.DEFAULT_AGGREGATION_METHOD,
-    ) -> tuple[tuple[torch.tensor, torch.tensor], tuple[torch.tensor, torch.tensor]]:
+    ) -> Tuple[Tuple[torch.tensor, torch.tensor], Tuple[torch.tensor, torch.tensor]]:
         """
         This function computes the bidirectional leakage for a given protected attribute,
         ground truth data and predicted values.
@@ -766,7 +766,7 @@ class DPA(BasePredictabilityMetric):
 
         Returns
         -------
-        tuple[tuple[torch.tensor, torch.tensor], tuple[torch.tensor, torch.tensor]]
+        Tuple[Tuple[torch.tensor, torch.tensor], Tuple[torch.tensor, torch.tensor]]
             The tuple contains (AtoT_leakage, TtoA_leakage).
             AtoT_leakage gives the average amortized leakage for the AtoT direction.
             TtoA_leakage gives the average amortized leakage for the TtoA direction.
