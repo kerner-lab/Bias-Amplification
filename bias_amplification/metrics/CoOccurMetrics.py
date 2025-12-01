@@ -14,8 +14,8 @@ sys.path.insert(0, str(project_root))
 class BaseCoOccurMetric(ABC):
     """
     Abstract base class for co-occurrence-based bias amplification metrics.
-    
-    This class provides common functionality for computing probabilities 
+
+    This class provides common functionality for computing probabilities
     and bias amplification computations.
     """
 
@@ -157,7 +157,7 @@ class BA_MALS(BaseCoOccurMetric):
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> tuple[torch.tensor, torch.tensor]:
         """
-        Computes bias amplification by comparing the conditional 
+        Computes bias amplification by comparing the conditional
         probabilities of A given T and A given T_pred.
 
         Parameters
@@ -190,9 +190,9 @@ class DBA(BaseCoOccurMetric):
     """
     Bias Amplification Metric from Directional Bias Amplification.
     This metric computes bias amplification that addresses on the shortcomings
-    of Zhao's metric by focusing on both positive and negative correlations, 
-    and the direction of amplification through comparing the conditional 
-    probabilities of A given T and A given T_pred. 
+    of Zhao's metric by focusing on both positive and negative correlations,
+    and the direction of amplification through comparing the conditional
+    probabilities of A given T and A given T_pred.
     """
 
     def __init__(self):
@@ -226,7 +226,7 @@ class DBA(BaseCoOccurMetric):
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> tuple[torch.tensor, torch.tensor]:
         """
-        Computes bias amplification by comparing the conditional 
+        Computes bias amplification by comparing the conditional
         probabilities of A given T and A given T_pred.
 
         Parameters
@@ -294,8 +294,8 @@ class MDBA(BaseCoOccurMetric):
     """
     Multi-Attribute Directional Bias Amplification Metric.
     This metric computes bias amplification that addresses on the shortcomings
-    of DBA by focusing on multi-attribute combinations through comparing the conditional 
-    probabilities of A given T and A given T_pred. 
+    of DBA by focusing on multi-attribute combinations through comparing the conditional
+    probabilities of A given T and A given T_pred.
     """
 
     def __init__(self, min_attr_size: int = 1, max_attr_size: int = None):

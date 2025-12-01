@@ -12,5 +12,5 @@ __all__ = [
     "BaseCoOccurMetric",
     "BA_MALS",
     "DBA",
-    "MDBA"
+    "MDBA",
 ]
