@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 project = "Bias Amplification"
 copyright = "2025, Rahul, Ushnesha and Bhanu"
 author = "Rahul Nair, Ushnesha Daripa and Bhanu Tokas"
-release = "0.1.2"
+release = "0.2.0"
 
 extensions = [
     "numpydoc",
