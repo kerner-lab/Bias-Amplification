@@ -20,6 +20,7 @@ extensions = [
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+master_doc = "index"
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
@@ -30,7 +31,6 @@ html_short_title = "Bias Amplification"
 html_show_sourcelink = False
 html_show_sphinx = False
 html_show_copyright = True
-html_show_sphinx = False
 
 # Napoleon settings (for Google/NumPy style docstrings)
 napoleon_google_docstring = True
@@ -58,7 +58,7 @@ autosummary_generate = True
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    "python": ("<https://docs.python.org/3>", None),
+    "python": ("<https://docs.python.org/3/>", None),
     "numpy": ("<https://numpy.org/doc/stable/>", None),
     "pandas": ("<https://pandas.pydata.org/docs/>", None),
     "torch": ("<https://pytorch.org/docs/stable/>", None),
