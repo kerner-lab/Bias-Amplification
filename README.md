@@ -12,6 +12,12 @@ pip install bias-amplification
 
 Check out demo notebook [here](https://colab.research.google.com/drive/161CRQSiy8zF3yBNlCHPJGBgRhZhQ72u9?usp=sharing)
 
+
+## Documentation
+
+Documentation available [here](https://bias-amplification.readthedocs.io/en/stable/api_reference/index.html)
+
+
 ## License
 
 MIT
