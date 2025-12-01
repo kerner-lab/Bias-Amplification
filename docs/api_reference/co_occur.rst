@@ -20,14 +20,14 @@ BaseCoOccurMetric
       import torch
 
       # BaseCoOccurMetric is abstract - use concrete implementations
-      # See BA_Zhao, DBA, or MDBA below
+      # See BA_MALS, DBA, or MDBA below
 
-BA_Zhao
+BA_MALS
 -------
 
 Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amplification by comparing conditional probabilities, but only focuses on positive correlations.
 
-.. autoclass:: bias_amplification.metrics.CoOccurMetrics.BA_Zhao
+.. autoclass:: bias_amplification.metrics.CoOccurMetrics.BA_MALS
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,11 +37,11 @@ Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amp
 
    .. code-block:: python
 
-      from bias_amplification.metrics.CoOccurMetrics import BA_Zhao
+      from bias_amplification.metrics.CoOccurMetrics import BA_MALS
       import torch
 
-      # Initialize BA_Zhao metric
-      ba_zhao = BA_Zhao()
+      # Initialize BA_MALS metric
+      ba_mals = BA_MALS()
 
       # Prepare data: A (attributes) and T (tasks) as binary tensors
       # A: shape (N, a) where N is number of observations, a is number of attribute categories
@@ -51,15 +51,15 @@ Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amp
       T_pred = torch.tensor([[1, 0], [1, 0], [0, 1], [0, 1]], dtype=torch.float)
 
       # Check which pairs exhibit bias
-      bias_mask = ba_zhao.check_bias(A, T)
+      bias_mask = ba_mals.check_bias(A, T)
 
       # Compute bias amplification
-      bias_amp_combined, bias_amp = ba_zhao.computeBiasAmp(A, T, T_pred)
+      bias_amp_combined, bias_amp = ba_mals.computeBiasAmp(A, T, T_pred)
 
 DBA (Directional Bias Amplification)
 --------------------------------------
 
-Bias Amplification Metric that addresses shortcomings of BA_Zhao by focusing on both positive and negative correlations, and the direction of amplification.
+Bias Amplification Metric that addresses shortcomings of BA_MALS by focusing on both positive and negative correlations, and the direction of amplification.
 
 .. autoclass:: bias_amplification.metrics.CoOccurMetrics.DBA
    :members:

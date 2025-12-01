@@ -3,7 +3,7 @@ Pytest test cases for CoOccurMetrics module.
 
 Tests cover:
 - BaseCoOccurMetric probability computation methods
-- BA_Zhao bias amplification metric
+- BA_MALS bias amplification metric
 - DBA (Differential Bias Amplification) metric
 - MDBA (Multi-Dimensional Bias Amplification) metric
 """
@@ -14,7 +14,7 @@ import torch
 import pytest
 from bias_amplification.metrics.CoOccurMetrics import (
     BaseCoOccurMetric,
-    BA_Zhao,
+    BA_MALS,
     DBA,
     MDBA
 )
@@ -39,7 +39,7 @@ def test_data():
 
 def test_metrics():
     return {
-        "BA_Zhao": BA_Zhao(),
+        "BA_MALS": BA_MALS(),
         "DBA": DBA(),
         "MDBA": MDBA()
     }
@@ -238,18 +238,18 @@ class TestBaseCoOccurMetric:
         assert torch.all(torch.isfinite(result))
 
 # ============================================================================
-# BA_ZHAO TESTS
+# BA_MALS TESTS
 # ============================================================================
 
 class TestMetricsComparison:
     #===========================================================================
-    # TESTING BA_ZHAO BASIC FUNCTIONALITY
+    # TESTING BA_MALS BASIC FUNCTIONALITY
     #===========================================================================
     def test_check_bias_shape(self):
         A, T = simple_binary_data()
         metrics = test_metrics()
-        metric_ba_zhao = metrics["BA_Zhao"]
-        bias = metric_ba_zhao.check_bias(A, T)
+        metric_BA_MALS = metrics["BA_MALS"]
+        bias = metric_BA_MALS.check_bias(A, T)
         assert bias is not None
         assert bias.shape == (A.shape[1], T.shape[1])
         assert bias.dtype == torch.float32
@@ -257,8 +257,8 @@ class TestMetricsComparison:
     def test_check_bias_uniform_distribution(self):
         A, T = independent_data()
         metrics = test_metrics()
-        metric_ba_zhao = metrics["BA_Zhao"]
-        bias = metric_ba_zhao.check_bias(A, T)
+        metric_BA_MALS = metrics["BA_MALS"]
+        bias = metric_BA_MALS.check_bias(A, T)
         assert isinstance(bias, torch.Tensor)
         assert bias.shape == (A.shape[1], T.shape[1])
 
@@ -266,8 +266,8 @@ class TestMetricsComparison:
         """Test bias check with correlated data."""
         A, T = correlated_data()
         metrics = test_metrics()
-        metric_ba_zhao = metrics["BA_Zhao"]
-        result = metric_ba_zhao.check_bias(A, T)
+        metric_BA_MALS = metrics["BA_MALS"]
+        result = metric_BA_MALS.check_bias(A, T)
         assert isinstance(result, torch.Tensor)
         # At least some pairs should be biased
         assert result.sum() > 0
@@ -275,8 +275,8 @@ class TestMetricsComparison:
     def test_computeBiasAmp_shape(self):
         A, T, T_pred = prediction_data(simple_binary_data())
         metrics = test_metrics()
-        metric_ba_zhao = metrics["BA_Zhao"]
-        bias_amp_combined, bias_amp = metric_ba_zhao.computeBiasAmp(A, T, T_pred)
+        metric_BA_MALS = metrics["BA_MALS"]
+        bias_amp_combined, bias_amp = metric_BA_MALS.computeBiasAmp(A, T, T_pred)
         assert isinstance(bias_amp_combined, torch.Tensor)
         assert bias_amp_combined.shape == ()
         assert bias_amp_combined.dtype == torch.float32
@@ -289,9 +289,9 @@ class TestMetricsComparison:
         A, T = simple_binary_data()
         T_pred = T.clone()
         metrics = test_metrics()
-        metric_ba_zhao = metrics["BA_Zhao"]
-        bias_amp_combined_1, bias_amp_1 = metric_ba_zhao.computeBiasAmp(A, T, T_pred)
-        bias_amp_combined_2, bias_amp_2 = metric_ba_zhao.computeBiasAmp(A, T, T_pred)
+        metric_BA_MALS = metrics["BA_MALS"]
+        bias_amp_combined_1, bias_amp_1 = metric_BA_MALS.computeBiasAmp(A, T, T_pred)
+        bias_amp_combined_2, bias_amp_2 = metric_BA_MALS.computeBiasAmp(A, T, T_pred)
         assert torch.allclose(bias_amp_1, bias_amp_2)
         assert torch.allclose(bias_amp_combined_1, bias_amp_combined_2)
 
@@ -335,7 +335,7 @@ class TestMetricsComparison:
     #===========================================================================
     # TESTING METRICS SHORTCOMINGS AND COMPARISONS
     #===========================================================================
-    def test_how_BA_Zhao_and_DBA_handles_positive_and_negative_correlations(self):
+    def test_how_BA_MALS_and_DBA_handles_positive_and_negative_correlations(self):
         """
         DEMONSTRATION: DBA.computeBiasAmp focuses on both positive and negative correlations.
         
@@ -344,7 +344,7 @@ class TestMetricsComparison:
         2. DBA's computeBiasAmp formula: (y_at * delta) + ((1 - y_at) * (-delta))
            handles both positive (y_at=1) and negative (y_at=0) correlations
         3. Negative correlation pairs contribute non-zero values to bias_amp
-        4. This is an improvement over BA_Zhao which ignores negative correlations
+        4. This is an improvement over BA_MALS which ignores negative correlations
         """
         # Create data with both positive and negative correlations
         # A[0] positively correlated with T[0] (when A[0]=1, T[0]=1)
@@ -369,61 +369,61 @@ class TestMetricsComparison:
         
         metrics = test_metrics()
         metric_dba = metrics["DBA"]
-        metric_ba_zhao = metrics["BA_Zhao"]
+        metric_BA_MALS = metrics["BA_MALS"]
         
         # Step 1: Check which pairs DBA identifies as dependent
         dba_mask = metric_dba.check_bias(A, T)
-        ba_zhao_mask = metric_ba_zhao.check_bias(A, T)
+        BA_MALS_mask = metric_BA_MALS.check_bias(A, T)
 
         # Compute joint probabilities
-        A_T_probs = metric_ba_zhao.computePairProbs(A, T)
-        A_Tpred_probs = metric_ba_zhao.computePairProbs(A, T_pred)
+        A_T_probs = metric_BA_MALS.computePairProbs(A, T)
+        A_Tpred_probs = metric_BA_MALS.computePairProbs(A, T_pred)
         
         # Manual calculation to show the filtering
-        # BA_Zhao formula: bias_amp = (bias_mask * A_Tpred_probs) - (bias_mask * A_T_probs)
-        manual_bias_amp = (ba_zhao_mask * A_Tpred_probs) - (ba_zhao_mask * A_T_probs)
+        # BA_MALS formula: bias_amp = (bias_mask * A_Tpred_probs) - (bias_mask * A_T_probs)
+        manual_bias_amp = (BA_MALS_mask * A_Tpred_probs) - (BA_MALS_mask * A_T_probs)
         manual_bias_amp = manual_bias_amp / T.shape[1]
         
         # Get actual result
-        ba_zhao_bias_amp_combined, ba_zhao_bias_amp = metric_ba_zhao.computeBiasAmp(A, T, T_pred)
+        BA_MALS_bias_amp_combined, BA_MALS_bias_amp = metric_BA_MALS.computeBiasAmp(A, T, T_pred)
         
-        print(f"\n[BA_Zhao Shortcoming] Bias mask filtering demonstration:")
-        print(f"  Bias mask: {ba_zhao_mask}")
+        print(f"\n[BA_MALS Shortcoming] Bias mask filtering demonstration:")
+        print(f"  Bias mask: {BA_MALS_mask}")
         print(f"  A_T_probs: {A_T_probs}")
         print(f"  A_Tpred_probs: {A_Tpred_probs}")
         print(f"  Manual calculation (showing mask filtering): {manual_bias_amp}")
-        print(f"  Actual bias_amp: {ba_zhao_bias_amp}")
+        print(f"  Actual bias_amp: {BA_MALS_bias_amp}")
         
         # Verify the formula matches
-        assert torch.allclose(ba_zhao_bias_amp, manual_bias_amp, atol=1e-6), \
+        assert torch.allclose(BA_MALS_bias_amp, manual_bias_amp, atol=1e-6), \
             "Bias amplification should match manual calculation"
         
         # Key assertion: Where bias_mask is 0, bias_amp must be 0
-        zero_mask_positions = (ba_zhao_mask == 0.0)
-        bias_amp_at_zero_mask = ba_zhao_bias_amp[zero_mask_positions]
+        zero_mask_positions = (BA_MALS_mask == 0.0)
+        bias_amp_at_zero_mask = BA_MALS_bias_amp[zero_mask_positions]
         
-        print(f"\n[BA_Zhao Shortcoming] Positions where bias_mask=0 (negative correlations):")
+        print(f"\n[BA_MALS Shortcoming] Positions where bias_mask=0 (negative correlations):")
         print(f"  Bias amplification at these positions: {bias_amp_at_zero_mask}")
         print(f"  These should all be 0 (or very close to 0)")
         
         assert torch.allclose(bias_amp_at_zero_mask, torch.zeros_like(bias_amp_at_zero_mask), atol=1e-6), \
-            "BA_Zhao should set bias_amp to 0 wherever ba_zhao_mask is 0 (negative correlations ignored)"
+            "BA_MALS should set bias_amp to 0 wherever BA_MALS_mask is 0 (negative correlations ignored)"
         
         # Show that even if we change predictions for negative correlation pairs,
-        # BA_Zhao still ignores them
+        # BA_MALS still ignores them
         T_pred_modified = T_pred.clone()
         T_pred_modified[4:, 0] = 1.0  # Change A[1] predictions to T[0]=1 (opposite of negative correlation)
         
-        ba_zhao_bias_amp_combined_modified, ba_zhao_bias_amp_modified = metric_ba_zhao.computeBiasAmp(A, T, T_pred_modified)
+        BA_MALS_bias_amp_combined_modified, BA_MALS_bias_amp_modified = metric_BA_MALS.computeBiasAmp(A, T, T_pred_modified)
         
-        print(f"\n[BA_Zhao Shortcoming] Even when predictions change for negative correlation:")
-        print(f"  Original bias_amp[1,0]: {ba_zhao_bias_amp[1, 0]}")
-        print(f"  Modified bias_amp[1,0]: {ba_zhao_bias_amp_modified[1, 0]}")
+        print(f"\n[BA_MALS Shortcoming] Even when predictions change for negative correlation:")
+        print(f"  Original bias_amp[1,0]: {BA_MALS_bias_amp[1, 0]}")
+        print(f"  Modified bias_amp[1,0]: {BA_MALS_bias_amp_modified[1, 0]}")
         print(f"  Both should be 0 because bias_mask[1,0] = 0")
         
         # Both should be 0 because bias_mask filters them out
-        assert torch.abs(ba_zhao_bias_amp[1, 0]) < 1e-6, "Original should be 0"
-        assert torch.abs(ba_zhao_bias_amp_modified[1, 0]) < 1e-6, "Modified should also be 0 (masked out)"
+        assert torch.abs(BA_MALS_bias_amp[1, 0]) < 1e-6, "Original should be 0"
+        assert torch.abs(BA_MALS_bias_amp_modified[1, 0]) < 1e-6, "Modified should also be 0 (masked out)"
         
         # DBA uses independence test: P(A,T) > P(A)P(T)
         joint_probs = metric_dba.computePairProbs(A, T)
@@ -473,7 +473,7 @@ class TestMetricsComparison:
         print(f"  Positive correlation (A[0], T[0]) contribution: {positive_corr_contribution}")
         print(f"  Negative correlation (A[1], T[0]) contribution: {negative_corr_contribution}")
         print(f"  Delta for negative correlation: {delta_at[1, 0]}")
-        print(f"  Both contribute to bias amplification (unlike BA_Zhao {ba_zhao_mask[1, 0]})!")
+        print(f"  Both contribute to bias amplification (unlike BA_MALS {BA_MALS_mask[1, 0]})!")
         
         # The key point: DBA's formula handles negative correlations
         expected_negative_contribution = ((1 - dba_mask[1, 0]) * (-delta_at[1, 0])) / (A.shape[1] * T.shape[1])
@@ -490,21 +490,21 @@ class TestMetricsComparison:
         if torch.abs(delta_at[1, 0]) < 1e-6:
             print(f"    Delta is ~0, so contribution is ~0 (but formula still applies)")
             print(f"    This demonstrates DBA's formula structure handles negative correlations")
-            print(f"    When delta != 0, negative correlations WILL contribute (unlike BA_Zhao)")
+            print(f"    When delta != 0, negative correlations WILL contribute (unlike BA_MALS)")
         
-        print(f"\n[Comparison: DBA vs BA_Zhao]:")
-        print(f"  BA_Zhao mask: {ba_zhao_mask}")
-        print(f"  BA_Zhao bias amplification: {ba_zhao_bias_amp}")
-        print(f"  BA_Zhao combined: {ba_zhao_bias_amp_combined}")
+        print(f"\n[Comparison: DBA vs BA_MALS]:")
+        print(f"  BA_MALS mask: {BA_MALS_mask}")
+        print(f"  BA_MALS bias amplification: {BA_MALS_bias_amp}")
+        print(f"  BA_MALS combined: {BA_MALS_bias_amp_combined}")
         print(f"  DBA bias amplification: {dba_bias_amp}")
         print(f"  DBA combined: {dba_bias_amp_combined}")
         print(f"\n  KEY DIFFERENCE:")
-        print(f"    BA_Zhao[1,0] (negative corr): {ba_zhao_bias_amp[1, 0]} (IGNORED)")
+        print(f"    BA_MALS[1,0] (negative corr): {BA_MALS_bias_amp[1, 0]} (IGNORED)")
         print(f"    DBA[1,0] (negative corr): {dba_bias_amp[1, 0]} (CAPTURED)")
         
-        # BA_Zhao should have 0 for negative correlation
-        assert torch.abs(ba_zhao_bias_amp[1, 0]) < 1e-6, \
-            "BA_Zhao should ignore negative correlations"
+        # BA_MALS should have 0 for negative correlation
+        assert torch.abs(BA_MALS_bias_amp[1, 0]) < 1e-6, \
+            "BA_MALS should ignore negative correlations"
         
         # DBA's formula handles negative correlations (even if delta is 0 in this case)
         # The key difference is the formula structure
@@ -515,7 +515,7 @@ class TestMetricsComparison:
         print(f"    = ({dba_mask[1, 0]} * {delta_at[1, 0]}) + ((1-{dba_mask[1, 0]}) * (-{delta_at[1, 0]}))")
         print(f"    = {dba_formula_applied}")
         print(f"  This shows DBA's formula structure handles negative correlations")
-        print(f"  When delta != 0, it will contribute (unlike BA_Zhao which always gives 0)")
+        print(f"  When delta != 0, it will contribute (unlike BA_MALS which always gives 0)")
         
         # Verify DBA applies the formula (even if result is 0 when delta=0)
         assert torch.allclose(dba_bias_amp[1, 0], dba_formula_applied, atol=1e-6), \
@@ -634,7 +634,7 @@ class TestMetricsComparison:
         DEMONSTRATION: DBA captures bias amplification even when it occurs in negative correlations.
         
         Shows that when a model amplifies bias in negative correlation pairs,
-        DBA detects it while BA_Zhao misses it.
+        DBA detects it while BA_MALS misses it.
         """
         # Create data with negative correlation
         # Use more data points to ensure we can create a clear delta
@@ -657,11 +657,11 @@ class TestMetricsComparison:
         
         metrics = test_metrics()
         metric_dba = metrics["DBA"]
-        metric_ba_zhao = metrics["BA_Zhao"]
+        metric_BA_MALS = metrics["BA_MALS"]
         
         # Compute with both metrics
         dba_bias_amp_combined, dba_bias_amp = metric_dba.computeBiasAmp(A, T, T_pred)
-        ba_zhao_bias_amp_combined, ba_zhao_bias_amp = metric_ba_zhao.computeBiasAmp(A, T, T_pred)
+        BA_MALS_bias_amp_combined, BA_MALS_bias_amp = metric_BA_MALS.computeBiasAmp(A, T, T_pred)
         
         # Compute delta to verify it's non-zero
         P_T_given_A = metric_dba.computeTgivenA(A, T)
@@ -672,21 +672,21 @@ class TestMetricsComparison:
         print(f"  Ground truth P(T[0]|A[1]): {P_T_given_A[1, 0]:.3f}")
         print(f"  Predictions P(T[0]|A[1]): {P_Tpred_given_A[1, 0]:.3f}")
         print(f"  Delta[1,0] (negative corr): {delta_at[1, 0]:.3f}")
-        print(f"  BA_Zhao bias_amp[1,0] (negative corr): {ba_zhao_bias_amp[1, 0]:.6f}")
+        print(f"  BA_MALS bias_amp[1,0] (negative corr): {BA_MALS_bias_amp[1, 0]:.6f}")
         print(f"  DBA bias_amp[1,0] (negative corr): {dba_bias_amp[1, 0]:.6f}")
-        print(f"  BA_Zhao combined: {ba_zhao_bias_amp_combined:.6f}")
+        print(f"  BA_MALS combined: {BA_MALS_bias_amp_combined:.6f}")
         print(f"  DBA combined: {dba_bias_amp_combined:.6f}")
         print(f"\n  PROBLEM: Model changes predictions for negative correlation pair (A[1], T[0])")
-        print(f"    BA_Zhao misses it (contribution = 0, filtered by bias_mask)")
+        print(f"    BA_MALS misses it (contribution = 0, filtered by bias_mask)")
         print(f"    DBA captures it (contribution != 0, formula handles negative correlations)")
         
         # Verify delta is non-zero for negative correlation
         assert torch.abs(delta_at[1, 0]) > 0.1, \
             f"Delta should be non-zero to demonstrate DBA's capability, got {delta_at[1, 0]}"
         
-        # BA_Zhao should have 0 for negative correlation (always, due to bias_mask)
-        assert torch.abs(ba_zhao_bias_amp[1, 0]) < 1e-6, \
-            "BA_Zhao should ignore negative correlation amplification (bias_mask filters it out)"
+        # BA_MALS should have 0 for negative correlation (always, due to bias_mask)
+        assert torch.abs(BA_MALS_bias_amp[1, 0]) < 1e-6, \
+            "BA_MALS should ignore negative correlation amplification (bias_mask filters it out)"
         
         # DBA should have non-zero for negative correlation when delta is non-zero
         assert torch.abs(dba_bias_amp[1, 0]) > 1e-6, \
@@ -707,9 +707,9 @@ class TestMetricsComparison:
         
         # DBA should capture more total bias amplification
         print(f"\n  Summary:")
-        print(f"    BA_Zhao: Ignores negative correlations (always 0)")
+        print(f"    BA_MALS: Ignores negative correlations (always 0)")
         print(f"    DBA: Captures negative correlations when delta != 0")
-        print(f"    This demonstrates DBA's improvement over BA_Zhao!")
+        print(f"    This demonstrates DBA's improvement over BA_MALS!")
 
     def test_DBA_uses_base_rates_in_independence_test(self):
         """
@@ -1035,7 +1035,7 @@ class TestMetricsComparison:
         print(f"    The independence test P(A,T) > P(A)P(T) explicitly uses P(A)")
         print(f"    When base rates change, the threshold P(A)P(T) changes")
         print(f"    This can cause different pairs to be flagged as dependent/independent")
-        print(f"    This is the key improvement over BA_Zhao which doesn't use base rates")
+        print(f"    This is the key improvement over BA_MALS which doesn't use base rates")
 
     #===========================================================================
     # TESTING MDBA MULTI-ATTRIBUTE CAPABILITY
@@ -1043,12 +1043,12 @@ class TestMetricsComparison:
     def test_MDBA_considers_multiple_attribute_combinations(self):
         """
         DEMONSTRATION: MDBA considers multiple attribute combinations,
-        while BA_Zhao and DBA only consider individual attributes.
+        while BA_MALS and DBA only consider individual attributes.
         
         This test creates a scenario where:
         1. Individual attributes (T[0], T[1]) show weak/no bias amplification
         2. But the combination (T[0] AND T[1]) shows strong bias amplification
-        3. MDBA captures this, while BA_Zhao and DBA miss it
+        3. MDBA captures this, while BA_MALS and DBA miss it
         """
         
         # 20 samples: 10 A[0], 10 A[1]
@@ -1078,12 +1078,12 @@ class TestMetricsComparison:
         ], dtype=torch.float)
         
         metrics = test_metrics()
-        ba_zhao = metrics["BA_Zhao"]
+        BA_MALS = metrics["BA_MALS"]
         dba = metrics["DBA"]
         mdba = metrics["MDBA"]
         
         # Compute bias amplification for each metric
-        ba_zhao_combined, ba_zhao_amp = ba_zhao.computeBiasAmp(A, T, T_pred)
+        BA_MALS_combined, BA_MALS_amp = BA_MALS.computeBiasAmp(A, T, T_pred)
         dba_combined, dba_amp = dba.computeBiasAmp(A, T, T_pred)
         mdba_mean, mdba_variance = mdba.computeBiasAmp(A, T, T_pred)
         
@@ -1097,12 +1097,12 @@ class TestMetricsComparison:
         
         # Check individual attribute correlations
         # P(A[0], T[0]) and P(A[0], T[1]) individually
-        joint_T0 = ba_zhao.computePairProbs(A, T[:, 0:1])
-        joint_T1 = ba_zhao.computePairProbs(A, T[:, 1:2])
+        joint_T0 = BA_MALS.computePairProbs(A, T[:, 0:1])
+        joint_T1 = BA_MALS.computePairProbs(A, T[:, 1:2])
         
         # Check combination correlation: P(A[0], T[0] AND T[1])
         T_combined = (T[:, 0:1] * T[:, 1:2])  # Element-wise product: 1 only if both are 1
-        joint_combined = ba_zhao.computePairProbs(A, T_combined)
+        joint_combined = BA_MALS.computePairProbs(A, T_combined)
         
         print(f"\n  Individual attribute correlations:")
         print(f"    P(A[0], T[0]): {joint_T0[0, 0]:.3f}")
@@ -1121,8 +1121,8 @@ class TestMetricsComparison:
         print(f"    Delta (amplification): {delta_combined:.3f}")
         
         print(f"\n  Bias amplification results:")
-        print(f"    BA_Zhao combined: {ba_zhao_combined:.6f}")
-        print(f"    BA_Zhao matrix:\n{ba_zhao_amp}")
+        print(f"    BA_MALS combined: {BA_MALS_combined:.6f}")
+        print(f"    BA_MALS matrix:\n{BA_MALS_amp}")
         print(f"    DBA combined: {dba_combined:.6f}")
         print(f"    DBA matrix:\n{dba_amp}")
         print(f"    MDBA mean: {mdba_mean:.6f}")
@@ -1131,7 +1131,7 @@ class TestMetricsComparison:
         print(f"\n  KEY POINT: MDBA considers attribute combinations!")
         print(f"    Individual attributes may show weak correlation")
         print(f"    But combinations (T[0] AND T[1]) show strong correlation")
-        print(f"    MDBA captures this, while BA_Zhao and DBA miss it")
+        print(f"    MDBA captures this, while BA_MALS and DBA miss it")
         
         # Verify that MDBA considers multiple combinations
         assert mdba_stats['total_combinations'] >= 3, \
@@ -1142,26 +1142,26 @@ class TestMetricsComparison:
                 print(f"\n  SUCCESS: MDBA captures bias amplification in attribute combinations!")
                 print(f"    The combination (T[0] AND T[1]) shows amplification: {delta_combined:.3f}")
                 print(f"    MDBA mean captures this: {mdba_mean:.6f}")
-                print(f"    BA_Zhao and DBA only see individual attributes, missing the combination")
+                print(f"    BA_MALS and DBA only see individual attributes, missing the combination")
             else:
                 print(f"\n  NOTE: Combination shows clear amplification (delta = {delta_combined:.3f})")
                 print(f"    but MDBA mean is {mdba_mean:.6f} (likely due to normalization)")
                 print(f"    However, MDBA's key advantage is considering {mdba_stats['total_combinations']} combinations")
-                print(f"    while BA_Zhao and DBA only consider 2 individual attributes")
+                print(f"    while BA_MALS and DBA only consider 2 individual attributes")
         
         # The key point is that MDBA considers combinations, not just that mean > 0
         # Normalization by (num_A * num_M) can make the mean very small even with real bias
         print(f"\n  KEY POINT: MDBA considers {mdba_stats['total_combinations']} attribute combinations")
         print(f"    This allows it to detect bias in combinations like (T[0] AND T[1])")
-        print(f"    BA_Zhao and DBA only consider individual attributes, missing combination bias")
+        print(f"    BA_MALS and DBA only consider individual attributes, missing combination bias")
 
-    def test_BA_Zhao_and_DBA_miss_multi_attribute_bias(self):
+    def test_BA_MALS_and_DBA_miss_multi_attribute_bias(self):
         """
-        DEMONSTRATION: BA_Zhao and DBA fail to capture bias amplification
+        DEMONSTRATION: BA_MALS and DBA fail to capture bias amplification
         that only appears in multiple attribute combinations.
         
         This test shows that when bias only exists in combinations (not individual attributes),
-        BA_Zhao and DBA report low/zero bias amplification, while MDBA captures it.
+        BA_MALS and DBA report low/zero bias amplification, while MDBA captures it.
         """
         
         # 16 samples: 8 A[0], 8 A[1]
@@ -1194,27 +1194,27 @@ class TestMetricsComparison:
         ], dtype=torch.float)
         
         metrics = test_metrics()
-        ba_zhao = metrics["BA_Zhao"]
+        BA_MALS = metrics["BA_MALS"]
         dba = metrics["DBA"]
         mdba = metrics["MDBA"]
         
         # Compute bias amplification
-        ba_zhao_combined, ba_zhao_amp = ba_zhao.computeBiasAmp(A, T, T_pred)
+        BA_MALS_combined, BA_MALS_amp = BA_MALS.computeBiasAmp(A, T, T_pred)
         dba_combined, dba_amp = dba.computeBiasAmp(A, T, T_pred)
         mdba_mean, mdba_variance = mdba.computeBiasAmp(A, T, T_pred)
         
         # Check individual attribute correlations
         # P(A[0] | T[0]) and P(A[0] | T[1])
-        P_A0_given_T0_gt = ba_zhao.computeAgivenT(A, T[:, 0:1])[0, 0]
-        P_A0_given_T1_gt = ba_zhao.computeAgivenT(A, T[:, 1:2])[0, 0]
+        P_A0_given_T0_gt = BA_MALS.computeAgivenT(A, T[:, 0:1])[0, 0]
+        P_A0_given_T1_gt = BA_MALS.computeAgivenT(A, T[:, 1:2])[0, 0]
         
         # Check combination: P(A[0] | T[0] AND T[1])
         T_combined_gt = (T[:, 0:1] * T[:, 1:2])
         T_combined_pred = (T_pred[:, 0:1] * T_pred[:, 1:2])
-        P_A0_given_combined_gt = ba_zhao.computeAgivenT(A, T_combined_gt)[0, 0]
-        P_A0_given_combined_pred = ba_zhao.computeAgivenT(A, T_combined_pred)[0, 0]
+        P_A0_given_combined_gt = BA_MALS.computeAgivenT(A, T_combined_gt)[0, 0]
+        P_A0_given_combined_pred = BA_MALS.computeAgivenT(A, T_combined_pred)[0, 0]
         
-        print("\n[BA_Zhao and DBA Miss Multi-Attribute Bias]")
+        print("\n[BA_MALS and DBA Miss Multi-Attribute Bias]")
         print(f"  Individual attribute correlations:")
         print(f"    P(A[0] | T[0]) = {P_A0_given_T0_gt:.3f} (should be ~0.5 if independent)")
         print(f"    P(A[0] | T[1]) = {P_A0_given_T1_gt:.3f} (should be ~0.5 if independent)")
@@ -1224,32 +1224,32 @@ class TestMetricsComparison:
         print(f"    Change = {P_A0_given_combined_pred - P_A0_given_combined_gt:.3f}")
         
         print(f"\n  Bias amplification results:")
-        print(f"    BA_Zhao combined: {ba_zhao_combined:.6f}")
+        print(f"    BA_MALS combined: {BA_MALS_combined:.6f}")
         print(f"    DBA combined: {dba_combined:.6f}")
         print(f"    MDBA mean: {mdba_mean:.6f}")
         
         # Key point: Individual attributes show weak/no bias
         # But combination shows strong bias
-        individual_bias_weak = torch.abs(ba_zhao_amp).max() < 0.1
+        individual_bias_weak = torch.abs(BA_MALS_amp).max() < 0.1
         combination_bias_strong = mdba_mean > 0.05
         
         print(f"\n  KEY OBSERVATION:")
         print(f"    Individual attributes (T[0], T[1]): weak/no bias")
-        print(f"      BA_Zhao max individual: {torch.abs(ba_zhao_amp).max():.6f}")
+        print(f"      BA_MALS max individual: {torch.abs(BA_MALS_amp).max():.6f}")
         print(f"      DBA max individual: {torch.abs(dba_amp).max():.6f}")
         print(f"    Combination (T[0] AND T[1]): strong bias")
         print(f"      MDBA captures: {mdba_mean:.6f}")
         
-        # Verify that MDBA captures significantly more than BA_Zhao/DBA
+        # Verify that MDBA captures significantly more than BA_MALS/DBA
         # when bias only exists in combinations
         if combination_bias_strong and individual_bias_weak:
             print(f"\n  SUCCESS: MDBA captures multi-attribute bias that others miss!")
-            print(f"    BA_Zhao and DBA only see individual attributes → miss combination bias")
+            print(f"    BA_MALS and DBA only see individual attributes → miss combination bias")
             print(f"    MDBA considers all combinations → captures the bias")
             
             # MDBA should capture more when combination bias exists
-            assert mdba_mean > torch.abs(ba_zhao_combined), \
-                f"MDBA should capture more bias than BA_Zhao when bias exists in combinations"
+            assert mdba_mean > torch.abs(BA_MALS_combined), \
+                f"MDBA should capture more bias than BA_MALS when bias exists in combinations"
             assert mdba_mean > torch.abs(dba_combined), \
                 f"MDBA should capture more bias than DBA when bias exists in combinations"
 
@@ -1257,7 +1257,7 @@ class TestMetricsComparison:
         """
         DEMONSTRATION: With 3+ attributes, MDBA considers many more combinations
         (T[0], T[1], T[2], T[0] AND T[1], T[0] AND T[2], T[1] AND T[2], T[0] AND T[1] AND T[2])
-        while BA_Zhao and DBA only consider 3 individual attributes.
+        while BA_MALS and DBA only consider 3 individual attributes.
         """
         # 20 samples: 10 A[0], 10 A[1]
         A = torch.tensor([
@@ -1286,12 +1286,12 @@ class TestMetricsComparison:
         ], dtype=torch.float)
         
         metrics = test_metrics()
-        ba_zhao = metrics["BA_Zhao"]
+        BA_MALS = metrics["BA_MALS"]
         dba = metrics["DBA"]
         mdba = metrics["MDBA"]
         
         # Compute bias amplification
-        ba_zhao_combined, ba_zhao_amp = ba_zhao.computeBiasAmp(A, T, T_pred)
+        BA_MALS_combined, BA_MALS_amp = BA_MALS.computeBiasAmp(A, T, T_pred)
         dba_combined, dba_amp = dba.computeBiasAmp(A, T, T_pred)
         mdba_mean, mdba_variance = mdba.computeBiasAmp(A, T, T_pred)
         
@@ -1302,12 +1302,12 @@ class TestMetricsComparison:
         print(f"  MDBA considers {mdba_stats['total_combinations']} attribute combinations:")
         print(f"    By size: {mdba_stats['by_size']}")
         print(f"    Examples: {mdba_stats['examples']}")
-        print(f"  BA_Zhao and DBA consider only 3 individual attributes")
+        print(f"  BA_MALS and DBA consider only 3 individual attributes")
         
         print(f"\n  Bias amplification results:")
-        print(f"    BA_Zhao combined: {ba_zhao_combined:.6f}")
-        print(f"    BA_Zhao matrix shape: {ba_zhao_amp.shape} (only individual attributes)")
-        print(f"    BA_Zhao matrix:\n{ba_zhao_amp}")
+        print(f"    BA_MALS combined: {BA_MALS_combined:.6f}")
+        print(f"    BA_MALS matrix shape: {BA_MALS_amp.shape} (only individual attributes)")
+        print(f"    BA_MALS matrix:\n{BA_MALS_amp}")
         print(f"    DBA combined: {dba_combined:.6f}")
         print(f"    DBA matrix shape: {dba_amp.shape} (only individual attributes)")
         print(f"    DBA matrix:\n{dba_amp}")
@@ -1338,13 +1338,13 @@ class TestMetricsComparison:
         
         # Verify all metrics detect bias amplification
         print(f"\n  Checking if metrics detect bias amplification:")
-        print(f"    BA_Zhao: {ba_zhao_combined:.6f}")
+        print(f"    BA_MALS: {BA_MALS_combined:.6f}")
         print(f"    DBA: {dba_combined:.6f}")
         print(f"    MDBA: {mdba_mean:.6f}")
         
-        # BA_Zhao should definitely detect bias
-        assert ba_zhao_combined > 0, \
-            f"BA_Zhao should detect bias amplification (got {ba_zhao_combined:.6f})"
+        # BA_MALS should definitely detect bias
+        assert BA_MALS_combined > 0, \
+            f"BA_MALS should detect bias amplification (got {BA_MALS_combined:.6f})"
         
         # DBA might be 0 due to normalization in computeTgivenA
         # computeTgivenA normalizes across all T columns, which can cause contributions to cancel
@@ -1447,23 +1447,23 @@ class TestMetricsComparison:
             print(f"      2. Many combinations with delta = 0 diluting the mean")
             print(f"      3. Combinations not passing check_bias test")
             print(f"    However, the KEY POINT is that MDBA CONSIDERS {mdba_stats['total_combinations']} combinations")
-            print(f"    while BA_Zhao and DBA only consider 3 individual attributes")
+            print(f"    while BA_MALS and DBA only consider 3 individual attributes")
         
         # The key assertion: MDBA considers more combinations
         assert mdba_stats['total_combinations'] > 3, \
             f"MDBA should consider more than 3 combinations (got {mdba_stats['total_combinations']}), " \
-            f"while BA_Zhao and DBA only consider 3 individual attributes"
+            f"while BA_MALS and DBA only consider 3 individual attributes"
         
         # If the combination shows clear bias amplification, verify MDBA can detect it
         # The delta for A[0] should be significant (0.4 = 1.0 - 0.6)
         if abs(delta_A0) > 0.1 and passes_check[0, 0].item():
             print(f"\n  KEY POINT: MDBA's advantage with multiple attributes:")
             print(f"    With 3 attributes, MDBA considers {mdba_stats['total_combinations']} combinations")
-            print(f"    BA_Zhao and DBA only consider 3 individual attributes")
+            print(f"    BA_MALS and DBA only consider 3 individual attributes")
             print(f"    The 3-way combination (T[0] AND T[1] AND T[2]) shows:")
             print(f"      - Statistical dependence with A[0] (passes check_bias)")
             print(f"      - Clear amplification: delta = {delta_A0:.3f}")
-            print(f"    MDBA can detect this multi-attribute bias, while BA_Zhao and DBA miss it")
+            print(f"    MDBA can detect this multi-attribute bias, while BA_MALS and DBA miss it")
             
             # Even if normalized mean is small, MDBA should be > 0 if there's real bias
             # But we're lenient here - the main point is that MDBA considers combinations
@@ -1472,6 +1472,6 @@ class TestMetricsComparison:
                 print(f"    But MDBA's key advantage is considering {mdba_stats['total_combinations']} combinations")
         
         print(f"\n  CONCLUSION: MDBA considers {mdba_stats['total_combinations']} attribute combinations")
-        print(f"    This is the key advantage over BA_Zhao and DBA which only consider individual attributes")
+        print(f"    This is the key advantage over BA_MALS and DBA which only consider individual attributes")
         print(f"    Even if the normalized mean is small, MDBA's ability to consider combinations")
         print(f"    allows it to detect bias that only appears in multi-attribute patterns")
