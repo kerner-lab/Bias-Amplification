@@ -3,7 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 import sys
 from pathlib import Path
-from typing import Literal, Union, Callable, Tuple, Optional, Dict, Any
+from typing import Literal, Union, Callable, Tuple, Optional, Dict, Any, List
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -331,7 +331,7 @@ class MDBA(BaseCoOccurMetric):
     def _generateAttributeCombinations(
         self,
         T: torch.tensor,
-    ) -> list[Tuple[torch.tensor, Tuple]]:
+    ) -> List[Tuple[torch.tensor, Tuple]]:
         """
         Generate all combinations of attributes for multi-attribute analysis.
 
