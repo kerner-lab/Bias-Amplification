@@ -1,6 +1,6 @@
 # Bias Amplification
 
-A library for measuring bias amplification and information leakage in machine learning models.
+A library for measuring bias amplification in classification models. This library is an extension of our NeurIPS 2025 paper, (more details [here](https://bhanutokas.github.io/DPA_web/)) 
 
 ## Installation
 
