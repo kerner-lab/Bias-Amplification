@@ -401,7 +401,7 @@ class BasePredictabilityMetric(ABC):
         else:
             return lambda_m - lambda_d
 
-    def getAmortizedLeakage(
+    def computeBiasAmp(
         self,
         feat_train: torch.tensor,
         data_train: torch.tensor,
@@ -560,7 +560,7 @@ class Leakage(BasePredictabilityMetric):
         self.attacker_D = self.model_params["attacker"]
         self.attacker_M = copy.deepcopy(self.attacker_D)
 
-    def getAmortizedLeakage(
+    def computeBiasAmp(
         self,
         feat_train: torch.tensor,
         data_train: torch.tensor,
@@ -600,7 +600,7 @@ class Leakage(BasePredictabilityMetric):
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
             for the Leakage metric.
         """
-        return super().getAmortizedLeakage(
+        return super().computeBiasAmp(
             feat_train=feat_train,
             data_train=data_train,
             pred_train=pred_train,
@@ -678,7 +678,7 @@ class DPA(BasePredictabilityMetric):
         self.attacker_D_TtoA = self.model_params["attacker_TtoA"]
         self.attacker_M_TtoA = copy.deepcopy(self.attacker_D_TtoA)
 
-    def getAmortizedLeakage(
+    def computeBiasAmp(
         self,
         feat_train: torch.tensor,
         data_train: torch.tensor,
@@ -724,7 +724,7 @@ class DPA(BasePredictabilityMetric):
             The formatted amortized leakage and the standard deviation of the form "leakage ± standard deviation"
             for the DPA metric.
         """
-        return super().getAmortizedLeakage(
+        return super().computeBiasAmp(
             feat_train=feat_train,
             data_train=data_train,
             pred_train=pred_train,
@@ -736,7 +736,7 @@ class DPA(BasePredictabilityMetric):
             pred_test=pred_test,
         )
 
-    def calcBidirectional(
+    def computeBiasAmpBidirectional(
         self,
         A: torch.tensor,
         T: torch.tensor,
@@ -771,8 +771,8 @@ class DPA(BasePredictabilityMetric):
             AtoT_leakage gives the average amortized leakage for the AtoT direction.
             TtoA_leakage gives the average amortized leakage for the TtoA direction.
         """
-        AtoT_vals = self.getAmortizedLeakage(A, T, T_pred, num_trials, method)
-        TtoA_vals = self.getAmortizedLeakage(T, A, A_pred, num_trials, method)
+        AtoT_vals = self.computeBiasAmp(A, T, T_pred, num_trials, method)
+        TtoA_vals = self.computeBiasAmp(T, A, A_pred, num_trials, method)
         return (AtoT_vals, TtoA_vals)
 
 
@@ -820,23 +820,23 @@ if __name__ == "__main__":
     print(f"Getting Amortized Leakage for Leakage Metric")
     print("=" * 50)
     print("Calculating Leakage for case 1")
-    leakage_1 = leakage_obj.getAmortizedLeakage(P, D, M1)
+    leakage_1 = leakage_obj.computeBiasAmp(P, D, M1)
     print(f"Leakage for case 1: {leakage_1}")
     print("=" * 50)
     # print("="*50)
     # print("Calculating Leakage for case 2")
-    # leakage_2 = leakage_obj.getAmortizedLeakage(P, D, M2)
+    # leakage_2 = leakage_obj.computeBiasAmp(P, D, M2)
     # print("="*50)
     # print(f"Amortised Leakage for case 2: {leakage_2}")
     # print("="*50)
     # print("="*50)
     # print("Calculating Leakage for case 3")
-    # leakage_3 = leakage_obj.getAmortizedLeakage(P, D2, M1)
+    # leakage_3 = leakage_obj.computeBiasAmp(P, D2, M1)
     # print(f"Leakage for case 3: {leakage_3}")
     # print("="*50)
     # print("="*50)
     # print("Calculating Leakage for case 4")
-    # leakage_4 = leakage_obj.getAmortizedLeakage(P, D2, M2)
+    # leakage_4 = leakage_obj.computeBiasAmp(P, D2, M2)
     # print(f"Leakage for case 4: {leakage_4}")
     # print("="*50)
     # print("="*50)
@@ -854,21 +854,21 @@ if __name__ == "__main__":
     # print(f"Getting Amortized Leakage for DPA Metric")
     # print("="*50)
     # print("Calculating DPA for case 1")
-    # dpa_1 = dpa_obj.getAmortizedLeakage(P, D, M1, "AtoT")
+    # dpa_1 = dpa_obj.computeBiasAmp(P, D, M1, "AtoT")
     # print(f"DPA for case 1: {dpa_1}")
     # print("="*50)
     # print("="*50)
     # print("Calculating DPA for case 2")
-    # dpa_2 = dpa_obj.getAmortizedLeakage(P, D, M2, "AtoT")
+    # dpa_2 = dpa_obj.computeBiasAmp(P, D, M2, "AtoT")
     # print(f"DPA for case 2: {dpa_2}")
     # print("="*50)
     # print("="*50)
     # print("Calculating DPA for case 3")
-    # dpa_3 = dpa_obj.getAmortizedLeakage(P, D2, M1, "AtoT")
+    # dpa_3 = dpa_obj.computeBiasAmp(P, D2, M1, "AtoT")
     # print(f"DPA for case 3: {dpa_3}")
     # print("="*50)
     # print("="*50)
     # print("Calculating DPA for case 4")
-    # dpa_4 = dpa_obj.getAmortizedLeakage(P, D2, M2, "AtoT")
+    # dpa_4 = dpa_obj.computeBiasAmp(P, D2, M2, "AtoT")
     # print(f"DPA for case 4: {dpa_4}")
     # print("="*50)

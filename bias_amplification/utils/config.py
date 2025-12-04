@@ -16,6 +16,14 @@ DEFAULT_OPTIMIZER = "adam"
 DEFAULT_SCHEDULER = "cosine"
 DEFAULT_AGGREGATION_METHOD = "mean"
 DEFAULT_NUM_TRIALS = 10
+DEFAULT_TRAIN_PARAMS = {
+        "learning_rate": DEFAULT_LEARNING_RATE,
+        "loss_function": "bce",
+        "epochs": DEFAULT_EPOCHS,
+        "batch_size": DEFAULT_BATCH_SIZE,
+    }
+
+DEFAULT_MODEL_PARAMS = {}
 
 
 # ============================================================================
