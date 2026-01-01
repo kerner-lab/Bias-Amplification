@@ -127,16 +127,16 @@ class simpleDenseModel(nn.Module):
             x = getattr(self, self.activations[i])(x)
         return x
 
-    def count_params(self):
-        """
-        This function counts the number of parameters in the neural network.
+def count_params(model):
+    """
+    This function counts the number of parameters in the neural network.
 
-        Returns
-        -------
-        int
-            The number of parameters in the neural network.
-        """
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+    Returns
+    -------
+    int
+        The number of parameters in the neural network.
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 if __name__ == "__main__":
