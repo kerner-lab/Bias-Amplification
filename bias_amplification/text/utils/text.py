@@ -30,7 +30,7 @@ class CaptionProcessor:
         tokenizer="basic_english",
         lang="en",
         model_type="glove",
-        bert_model="bert-base-uncased"  # for BERT
+        bert_model="bert-base-uncased",  # for BERT
     ) -> None:
         if tokenizer == "nltk":
             from nltk.tokenize import NLTKWordTokenizer
@@ -56,7 +56,7 @@ class CaptionProcessor:
             self.glove_model = None
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
-        
+
     @staticmethod
     def load_glove_model(glove_path):
         return KeyedVectors.load_word2vec_format(glove_path, binary=False)
@@ -76,12 +76,8 @@ class CaptionProcessor:
         tokens = self.tokenizer(text)
         return [token for token in tokens if token not in self.stopwords]
 
-    def tokens_to_numbers(
-        self, vocab, text_obj: Union[list[str], pd.Series], pad_value: int = 0
-    ):
-        sequence = numericalize_tokens_from_iterator(
-            vocab, self.apply_tokenizer(text_obj)
-        )
+    def tokens_to_numbers(self, vocab, text_obj: Union[list[str], pd.Series], pad_value: int = 0):
+        sequence = numericalize_tokens_from_iterator(vocab, self.apply_tokenizer(text_obj))
         token_ids = [list(next(sequence)) for _ in range(len(text_obj))]
         return pad_sequence(
             [torch.tensor(x) for x in token_ids],
@@ -197,7 +193,9 @@ class CaptionProcessor:
                     corpus_embeddings.append(torch.zeros_like(token_vec).unsqueeze(0))
             corpus_embeddings = torch.cat(corpus_embeddings, dim=0)
 
-            similarities = torch.nn.functional.cosine_similarity(token_vec.unsqueeze(0), corpus_embeddings, dim=1)
+            similarities = torch.nn.functional.cosine_similarity(
+                token_vec.unsqueeze(0), corpus_embeddings, dim=1
+            )
             max_similarity, best_idx = torch.max(similarities, dim=0)
 
             if max_similarity >= similarity_threshold and maskType == "contextual":
@@ -221,14 +219,17 @@ class CaptionProcessor:
 
         return equalized_human, equalized_model
 
+
 def cmpVocab(vocab1, vocab2):
     set1 = set(vocab1.stoi.keys())
     set2 = set(vocab2.stoi.keys())
-    
+
     common_tokens = set1 & set2
     only_in_vocab1 = set1 - set2
     only_in_vocab2 = set2 - set1
-    print(f"Common_tokens : {len(common_tokens)}, vocab_1_exc: {len(only_in_vocab1)}, vocab_2_exc: {len(only_in_vocab2)}")
+    print(
+        f"Common_tokens : {len(common_tokens)}, vocab_1_exc: {len(only_in_vocab1)}, vocab_2_exc: {len(only_in_vocab2)}"
+    )
 
 
 # CLI

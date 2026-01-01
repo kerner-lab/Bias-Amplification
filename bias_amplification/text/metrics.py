@@ -15,6 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Helper Types
 maskModeType = Literal["gender", "object"]
 
+
 # Main class
 class LIC:
     def __init__(
@@ -48,7 +49,7 @@ class LIC:
         }
         self.initEvalMetric(eval_metric)
         self.embed_model = None
-        if(self.model_params.get("embedding_model")):
+        if self.model_params.get("embedding_model"):
             self.embed_model = SentenceTransformer(self.model_params["embedding_model"])
         self.capProcessor = CaptionProcessor(
             gender_words,
@@ -93,9 +94,7 @@ class LIC:
         self.defineModel()
         model = getattr(self, "attacker_" + attacker_mode)
         criterion = self.loss_functions[self.train_params["loss_function"]]
-        optimizer = optim.Adam(
-            model.parameters(), lr=self.train_params["learning_rate"]
-        )
+        optimizer = optim.Adam(model.parameters(), lr=self.train_params["learning_rate"])
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
         batches = math.ceil(len(x) / self.train_params["batch_size"])
@@ -107,12 +106,8 @@ class LIC:
             start, running_loss = 0, 0.0
 
             for _ in range(batches):
-                x_batch = x[start : start + self.train_params["batch_size"]].to(
-                    self.device
-                )
-                y_batch = y[start : start + self.train_params["batch_size"]].to(
-                    self.device
-                )
+                x_batch = x[start : start + self.train_params["batch_size"]].to(self.device)
+                y_batch = y[start : start + self.train_params["batch_size"]].to(self.device)
 
                 optimizer.zero_grad()
                 outputs = model(x_batch)
@@ -229,7 +224,7 @@ class DBAC:
         eval_metric: Union[Callable, str] = "mse",
         glove_path=None,
         device="cpu",
-        sub_model = "glove",
+        sub_model="glove",
     ) -> None:
         """
         Parameters
@@ -275,7 +270,7 @@ class DBAC:
         }
         self.initEvalMetric(eval_metric)
         self.embed_model = None
-        if(self.model_params.get("embedding_model")):
+        if self.model_params.get("embedding_model"):
             self.embed_model = SentenceTransformer(self.model_params["embedding_model"])
         self.capProcessor = CaptionProcessor(
             gender_words,
@@ -328,9 +323,7 @@ class DBAC:
             leakage_amp = leakage_amp / (lambda_m + lambda_d)
         return leakage_amp
 
-    def getProbsfromObjectOccurences(
-        self, occurence_info: torch.tensor
-    ) -> torch.tensor:
+    def getProbsfromObjectOccurences(self, occurence_info: torch.tensor) -> torch.tensor:
         val, inverse, counts = torch.unique(
             occurence_info, return_inverse=True, return_counts=True, dim=0
         )
@@ -347,9 +340,7 @@ class DBAC:
         model = getattr(self, "attacker_" + attacker_mode)
         model.train()
         criterion = self.loss_functions[self.train_params["loss_function"]]
-        optimizer = optim.Adam(
-            model.parameters(), lr=self.train_params["learning_rate"]
-        )
+        optimizer = optim.Adam(model.parameters(), lr=self.train_params["learning_rate"])
         batches = math.ceil(len(x) / self.train_params["batch_size"])
 
         print(f"Training Activated for Mode: {attacker_mode}")
@@ -498,9 +489,7 @@ class DBAC:
         data = data_frame["caption"]
         pred_objs = pred_frame.drop("caption", axis=1).to_numpy()
         data_objs = data_frame.drop("caption", axis=1).to_numpy()
-        pred, data = self.captionPreprocess(
-            pred, data, mask_mode, similarity_threshold, mask_type
-        )
+        pred, data = self.captionPreprocess(pred, data, mask_mode, similarity_threshold, mask_type)
         pred = pred.to(self.device)
         data = data.to(self.device)
         feat = feat.to(self.device)
