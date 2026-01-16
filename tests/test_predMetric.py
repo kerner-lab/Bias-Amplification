@@ -1,9 +1,9 @@
 import torch
 import pytest
-from metrics.PredMetrics_v1 import *
-from attackerModels.ANN import simpleDenseModel
-from utils.datacreator import dataCreator
-from utils.losses import ModifiedBCELoss
+from bias_amplification.metrics.PredMetrics import *
+from bias_amplification.attacker_models.ANN import simpleDenseModel
+from bias_amplification.utils.datacreator import dataCreator
+from bias_amplification.utils.losses import ModifiedBCELoss
 from unittest.mock import Mock, patch
 
 # ===============================================================================
@@ -1148,7 +1148,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.45), torch.tensor(0.8)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1175,7 +1175,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1203,7 +1203,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1237,7 +1237,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1266,7 +1266,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1296,7 +1296,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1324,7 +1324,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.53), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat, data_train=data, pred_train=pred, num_trials=num_trials
             )
@@ -1339,7 +1339,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.59), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1358,7 +1358,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1383,7 +1383,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1403,7 +1403,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1424,7 +1424,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1455,7 +1455,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.45), torch.tensor(0.8)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1482,7 +1482,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1510,7 +1510,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1542,7 +1542,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1571,7 +1571,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1601,7 +1601,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1629,7 +1629,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.53), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat, data_train=data, pred_train=pred, num_trials=num_trials
             )
@@ -1644,7 +1644,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.59), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1663,7 +1663,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M1"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1688,7 +1688,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1708,7 +1708,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1729,7 +1729,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1760,7 +1760,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.45), torch.tensor(0.8)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1787,7 +1787,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1815,7 +1815,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1847,7 +1847,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1876,7 +1876,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1906,7 +1906,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -1934,7 +1934,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.53), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat, data_train=data, pred_train=pred, num_trials=num_trials
             )
@@ -1949,7 +1949,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.59), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1968,7 +1968,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -1993,7 +1993,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2013,7 +2013,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2034,7 +2034,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2063,7 +2063,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.45), torch.tensor(0.8)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2090,7 +2090,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2118,7 +2118,7 @@ class TestAmortisedLeakageCalculation:
         )
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.55), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2150,7 +2150,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2179,7 +2179,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2209,7 +2209,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat_train,
                 data_train=data_train,
@@ -2237,7 +2237,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.53), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat, data_train=data, pred_train=pred, num_trials=num_trials
             )
@@ -2252,7 +2252,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.59), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2271,7 +2271,7 @@ class TestAmortisedLeakageCalculation:
         pred = get_test_data()["M2"]
         num_trials = 3
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2296,7 +2296,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.Leakage.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.Leakage.calcLeak", side_effect=mock_values):
             amortized_leakage = leakage.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2316,7 +2316,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.54), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
@@ -2337,7 +2337,7 @@ class TestAmortisedLeakageCalculation:
         num_trials = 3
         method = "median"
         mock_values = [torch.tensor(0.4), torch.tensor(0.57), torch.tensor(0.6)]
-        with patch("PredMetrics_v1.DPA.calcLeak", side_effect=mock_values):
+        with patch("PredMetrics.DPA.calcLeak", side_effect=mock_values):
             amortized_leakage = dpa_1.getAmortizedLeakage(
                 feat_train=feat,
                 data_train=data,
