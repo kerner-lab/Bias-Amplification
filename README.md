@@ -4,8 +4,14 @@ A library for measuring bias amplification in classification models. This librar
 
 ## Installation
 
+### Basic Installation
 ```bash
 pip install bias-amplification
+```
+
+### With text Module (optional)
+```bash
+pip install 'bias-amplification[text]'
 ```
 
 ## Quick Start
