@@ -170,7 +170,7 @@ class LIC:
         self.vocab_size = len(human_vocab_set.union(model_vocab_set))
         if self.embed_model:
             model_cap = torch.tensor(self.embed_model.encode(model_captions))
-            human_cap = torch.tensor(self.embed_model.encode(model_captions))
+            human_cap = torch.tensor(self.embed_model.encode(human_captions))
         else:
             model_cap = self.capProcessor.tokens_to_numbers(model_vocab, model_captions)
             human_cap = self.capProcessor.tokens_to_numbers(human_vocab, human_captions)

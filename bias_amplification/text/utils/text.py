@@ -99,30 +99,42 @@ class CaptionProcessor:
         """
         if mode not in ["gender", "object"]:
             raise ValueError("Expected mode to be 'gender' or 'object'")
-        masked_strings = []
-        for string in string_list:
-            masked_tokens = []
-            token_list = self.tokenize(string)
-            for token in token_list:
-                if mode == "gender" and token in self.gender_words:
-                    masked_tokens.append(self.gender_token)
-                elif mode == "object" and token in self.object_words:
-                    """
-                    TODO : Previous logic, needs to be updated
-                    if object_presence_df is not None and img_id is not None:
-                        masked_tokens.append(
-                            self.object_token
-                            if object_presence_df.loc[img_id, token] == 1
-                            else token
-                        )
-                    else:
-                        masked_tokens.append(token)
-                    """
-                    masked_tokens.append(self.object_token)
-                else:
-                    masked_tokens.append(token)
-            masked_strings.append(" ".join(masked_tokens))
+
+        words_to_mask = self.gender_words if mode == "gender" else self.object_words
+        mask_token = self.gender_token if mode == "gender" else self.object_token
+        masked_strings = [
+            " ".join([mask_token if token in words_to_mask else token for token in self.tokenize(string)])
+            for string in string_list
+        ]
         return masked_strings
+
+    def get_embedding_dim(self):
+        """
+        Get the embedding dimension for the current model.
+        Returns the dimension size (e.g., 300 for GloVe, 768 for BERT-base).
+        """
+        if self.model_type == "glove" or self.model_type == "fasttext":
+            if self.glove_model is not None:
+                # Get dimension from GloVe model
+                return self.glove_model.vector_size
+            else:
+                # Fallback: try to get from a sample word
+                sample_vec = self.get_token_vector("the", None)
+                if sample_vec is not None:
+                    return sample_vec.shape[0]
+                return 300  # Default GloVe dimension
+        elif self.model_type == "bert":
+            if self.bert_model is not None:
+                # Get dimension from BERT model config
+                return self.bert_model.config.hidden_size
+            else:
+                # Fallback: try to get from a sample token
+                sample_vec = self.get_token_vector("the", None)
+                if sample_vec is not None:
+                    return sample_vec.shape[0]
+                return 768  # Default BERT-base dimension
+        else:
+            raise ValueError(f"Unknown model_type: {self.model_type}")
 
     def get_token_vector(self, token, context_sentence=None):
         """
@@ -174,24 +186,22 @@ class CaptionProcessor:
         machine_corpus = set([token for tokens in model_tokens for token in tokens])
         human_corpus = set([token for tokens in human_tokens for token in tokens])
 
-        def substitute_token(token, corpus, context_sentence=None):
+        machine_corpus_list = list(machine_corpus)
+        human_corpus_list = list(human_corpus)
+
+        # Get embedding dimension before processing
+        embedding_dim = self.get_embedding_dim()
+        # Create a zero vector template for missing embeddings
+        zero_vec_template = torch.zeros(embedding_dim)
+
+        def substitute_token(token, corpus_list, corpus_embeddings, context_sentence=None):
             token = token.lower()
-            if token in corpus:
+            if token in corpus_list:
                 return token
 
             token_vec = self.get_token_vector(token, context_sentence)
             if token_vec is None:
                 return "unk"
-
-            corpus_tokens = list(corpus)
-            corpus_embeddings = []
-            for t in corpus_tokens:
-                vec = self.get_token_vector(t, context_sentence)
-                if vec is not None:
-                    corpus_embeddings.append(vec.unsqueeze(0))
-                else:
-                    corpus_embeddings.append(torch.zeros_like(token_vec).unsqueeze(0))
-            corpus_embeddings = torch.cat(corpus_embeddings, dim=0)
 
             similarities = torch.nn.functional.cosine_similarity(
                 token_vec.unsqueeze(0), corpus_embeddings, dim=1
@@ -199,20 +209,48 @@ class CaptionProcessor:
             max_similarity, best_idx = torch.max(similarities, dim=0)
 
             if max_similarity >= similarity_threshold and maskType == "contextual":
-                return corpus_tokens[best_idx.item()]
+                return corpus_list[best_idx.item()]
             return "unk"
+
+        def equalize_caption(caption_tokens, corpus_list):
+            """
+            Process a caption: pre-compute corpus embeddings once, then process all tokens.
+            """
+            context_sentence = " ".join(caption_tokens)
+            
+            # Pre-compute corpus embeddings ONCE for a caption
+            corpus_embeddings = []
+            for t in corpus_list:
+                vec = self.get_token_vector(t, context_sentence)
+                if vec is not None:
+                    corpus_embeddings.append(vec.unsqueeze(0))
+                else:
+                    # Use pre-determined zero vector template
+                    corpus_embeddings.append(zero_vec_template.unsqueeze(0))
+            corpus_embeddings_tensor = torch.cat(corpus_embeddings, dim=0)
+
+            return " ".join([
+                substitute_token(
+                    tok,
+                    corpus_list,
+                    corpus_embeddings_tensor,
+                    context_sentence
+                )
+                for tok in caption_tokens
+            ])
+
 
         # Equalize human captions
         equalized_human = [
-            " ".join([substitute_token(tok, machine_corpus, " ".join(cap)) for tok in cap])
-            for cap in tqdm(human_tokens, desc="Equalizing Human Captions")
+            equalize_caption(human_cap, machine_corpus_list)
+            for human_cap in tqdm(human_tokens, desc="Equalizing Human Captions")
         ]
 
         # Equalize model captions if bidirectional
         if bidirectional:
             equalized_model = [
-                " ".join([substitute_token(tok, human_corpus, " ".join(cap)) for tok in cap])
-                for cap in tqdm(model_tokens, desc="Equalizing Model Captions")
+                equalize_caption(model_cap, human_corpus_list)
+                for model_cap in tqdm(model_tokens, desc="Equalizing Model Captions")
             ]
         else:
             equalized_model = [" ".join(cap) for cap in model_tokens]

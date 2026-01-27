@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from attackerModels.ANN import simpleDenseModel
+from bias_amplification.attacker_models.ANN import simpleDenseModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
