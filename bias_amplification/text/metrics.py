@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import torch.optim as optim
 from typing import Callable, Union, Literal
-from utils.losses import ModifiedBCELoss
-from utils.text import CaptionProcessor
+from bias_amplification.utils.losses import ModifiedBCELoss
+from bias_amplification.text.utils.text import CaptionProcessor
 from sentence_transformers import SentenceTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

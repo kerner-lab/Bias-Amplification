@@ -23,7 +23,8 @@ class LIC:
         obj_token: str,
         eval_metric: Union[Callable, str] = "mse",
         threshold=True,
-        glove_path=None,
+        model_path=None,
+        model_type="glove",
         device="cpu",
     ) -> None:
         """
@@ -75,7 +76,8 @@ class LIC:
             obj_words,
             gender_token=gender_token,
             obj_token=obj_token,
-            glove_path=glove_path,
+            model_path=model_path,
+            model_type=model_type,
         )
 
     def calcLeak(
@@ -258,7 +260,9 @@ if __name__ == "__main__":
     MODEL_ANN_PATH = os.path.join(script_dir, "gender_val_transformer_cap_mw_entries.pkl")
     # HUMAN_ANN_PATH = "./bias_data/Human_Ann/gender_obj_cap_mw_entries.pkl"
     # MODEL_ANN_PATH = "./bias_data/Transformer/gender_val_transformer_cap_mw_entries.pkl"
-    GLOVE_PATH = os.path.join(script_dir, "glove.6B.50d.w2vformat.txt")
+    MODEL_PATH = os.path.join(script_dir, "cc.en.300.bin")
+    # MODEL_PATH = os.path.join(script_dir, "glove.6B.50d.w2vformat.txt")
+    MODEL="fasttext"
     MASCULINE = [
         "man",
         "men",
@@ -303,7 +307,7 @@ if __name__ == "__main__":
 
     human_ann = ann_data["caption_human"]
     model_ann = ann_data["caption_model"]
-    gender = torch.tensor(ann_data["gender"]).reshape(-1, 1).type(torch.float)
+    gender = torch.tensor(ann_data["gender"].values, dtype = torch.float32).reshape(-1, 1)
 
     model_params = {
         "attacker_class": LSTM_ANN_Model,
@@ -334,7 +338,8 @@ if __name__ == "__main__":
         GENDER_TOKEN,
         OBJ_TOKEN,
         "bce",
-        glove_path=GLOVE_PATH,
+        model_path=MODEL_PATH,
+        model_type=MODEL,
         device=DEVICE,
     )
 

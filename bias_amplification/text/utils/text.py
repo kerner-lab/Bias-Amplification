@@ -6,6 +6,7 @@ import torch
 import argparse
 from typing import Union, Literal
 from gensim.models import KeyedVectors
+import fasttext
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
@@ -23,7 +24,7 @@ class CaptionProcessor:
         self,
         gender_words,
         obj_words,
-        glove_path=None,
+        model_path=None,
         gender_token="gender",
         obj_token="obj",
         stopwords=[".", ",", " "],
@@ -44,16 +45,19 @@ class CaptionProcessor:
         self.object_words = obj_words
         self.object_token = obj_token
         self.model_type = model_type
-        if model_type == "glove" or model_type == "fasttext":
-            self.glove_model = self.load_glove_model(glove_path) if glove_path else None
-            self.bert_tokenizer = None
-            self.bert_model = None
+        self.bert_tokenizer = None
+        self.bert_model = None
+        self.glove_model = None
+        self.fasttext_model = None
+        if model_type == "glove":
+            self.glove_model = self.load_glove_model(model_path) if model_path else None
+        elif model_type == "fasttext":
+            self.fasttext_model = fasttext.load_model(model_path) if model_path else None
         elif model_type == "bert":
             print(f"Loading BERT model: {bert_model}...")
             self.bert_tokenizer = AutoTokenizer.from_pretrained(bert_model)
             self.bert_model = AutoModel.from_pretrained(bert_model)
             self.bert_model.eval()
-            self.glove_model = None
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
 
@@ -113,7 +117,7 @@ class CaptionProcessor:
         Get the embedding dimension for the current model.
         Returns the dimension size (e.g., 300 for GloVe, 768 for BERT-base).
         """
-        if self.model_type == "glove" or self.model_type == "fasttext":
+        if self.model_type == "glove":
             if self.glove_model is not None:
                 # Get dimension from GloVe model
                 return self.glove_model.vector_size
@@ -123,6 +127,14 @@ class CaptionProcessor:
                 if sample_vec is not None:
                     return sample_vec.shape[0]
                 return 300  # Default GloVe dimension
+        elif self.model_type == "fasttext":
+            if self.fasttext_model is not None:
+                return self.fasttext_model.get_dimension()
+            else:
+                sample_vec = self.get_token_vector("the", None)
+                if sample_vec is not None:
+                    return sample_vec.shape[0]
+                return 300  # Default FastText dimension
         elif self.model_type == "bert":
             if self.bert_model is not None:
                 # Get dimension from BERT model config
@@ -146,6 +158,10 @@ class CaptionProcessor:
             if self.glove_model and token in self.glove_model:
                 return torch.tensor(self.glove_model[token])
             return None
+        elif self.model_type == "fasttext":
+            if self.fasttext_model:
+                return torch.tensor(self.fasttext_model.get_word_vector(token))
+            return None
         elif self.model_type == "bert":
             # Use context if provided
             if context_sentence:
@@ -165,6 +181,7 @@ class CaptionProcessor:
                 with torch.no_grad():
                     outputs = self.bert_model(**inputs)
                 return outputs.last_hidden_state.mean(dim=1).squeeze(0)
+
 
     def equalize_vocab(
         self,
