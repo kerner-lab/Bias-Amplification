@@ -6,6 +6,7 @@ import torch
 import torch.optim as optim
 from abc import ABC, abstractmethod
 from typing import Callable, Union, Literal
+from sklearn.model_selection import train_test_split
 from sentence_transformers import SentenceTransformer
 from bias_amplification.utils.losses import ModifiedBCELoss
 from bias_amplification.text.utils.text import CaptionProcessor
@@ -135,6 +136,18 @@ class BiasMetricBase(ABC):
             model_params["vocab_size"] = self.vocab_size
         self.attacker_D = model_class(**model_params).to(self.device)
         self.attacker_M = copy.deepcopy(self.attacker_D).to(self.device)
+
+    def split_data(self, data: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Splits the data into training and testing sets.
+        """
+        train, test = train_test_split(
+            data.numpy(), 
+            train_size=0.8, 
+            shuffle=True,
+            random_state=42
+        )
+        return torch.tensor(train), torch.tensor(test)
 
     def train(
         self,
@@ -590,19 +603,21 @@ class DBAC(BiasMetricBase):
 
         """
         # Perform vocab equalization
-        self.train(data, feat, "D")
+        data_train, data_test = self.split_data(data)
+        self.train(data_train, feat, "D")
         lambda_d = self.calc_lambda(
             model=getattr(self, "attacker_D"),
-            x=data,
+            x=data_test,
             y=feat,
             objs=data_objs,
             apply_bayes=apply_bayes,
             mask_mode=mask_mode
         )
-        self.train(pred, feat, "M")
+        pred_train, pred_test = self.split_data(pred)
+        self.train(pred_train, feat, "M")
         lambda_m = self.calc_lambda(
             model=getattr(self, "attacker_M"), 
-            x=pred,
+            x=pred_test,
             y=feat,
             objs=pred_objs,
             apply_bayes=apply_bayes,
@@ -897,30 +912,30 @@ if __name__ == "__main__":
         "batch_size": 1024,
     }
 
-    # LIC_obj = LIC(
-    #     model_params=model_params,
-    #     train_params=train_params,
-    #     gender_words=GENDER_WORDS,
-    #     obj_words=OBJ_WORDS,
-    #     gender_token=GENDER_TOKEN,
-    #     obj_token=OBJ_TOKEN,
-    #     eval_metric="mse",
-    #     model_path=MODEL_PATH,
-    #     model_type=MODEL,
-    #     device=DEVICE,
-    # )
+    LIC_obj = LIC(
+        model_params=model_params,
+        train_params=train_params,
+        gender_words=GENDER_WORDS,
+        obj_words=OBJ_WORDS,
+        gender_token=GENDER_TOKEN,
+        obj_token=OBJ_TOKEN,
+        eval_metric="mse",
+        model_path=MODEL_PATH,
+        model_type=MODEL,
+        device=DEVICE,
+    )
 
-    # lic_analysis_data = LIC_obj.get_amortized_leakage(
-    #     feat=gender,
-    #     data=human_ann,
-    #     pred=model_ann,
-    #     num_trials=1,
-    #     method="mean",
-    #     normalized=False,
-    #     similarity_threshold=1,
-    #     mask_type="constant",
-    #     mask_mode="gender",
-    # )
+    lic_analysis_data = LIC_obj.get_amortized_leakage(
+        feat=gender,
+        data=human_ann,
+        pred=model_ann,
+        num_trials=1,
+        method="mean",
+        normalized=False,
+        similarity_threshold=1,
+        mask_type="constant",
+        mask_mode="gender",
+    )
 
     DBAC_obj = DBAC(
         model_params=model_params,
