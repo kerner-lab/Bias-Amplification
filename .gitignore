@@ -205,7 +205,3 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
-# Dataset
-bias_amplification/text/Dataset_test/*.pkl
-bias_amplification/text/Dataset_test/glove.6B.50d.w2vformat.txt
