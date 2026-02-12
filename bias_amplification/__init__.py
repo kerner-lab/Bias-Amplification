@@ -27,24 +27,34 @@ __all__ = [
     "__version__",
 ]
 
-# Optional text module imports
-try:
-    from .text.metrics import LIC, DBAC
-    __all__.extend(["LIC", "DBAC"])
-except ImportError as e:
-    # Text module not installed
-    _text_import_error = e
-    def _raise_text_import_error():
-        raise ImportError(
-            "Text module requires additional dependencies. "
-            "Install with: pip install bias-amplification[text]"
-        ) from _text_import_error
-    
-    # Create placeholder classes that raise helpful errors
-    class LIC:
-        def __init__(self, *args, **kwargs):
-            _raise_text_import_error()
-    
-    class DBAC:
-        def __init__(self, *args, **kwargs):
-            _raise_text_import_error()
+# Optional text module imports - lazy import with dependency check
+def __getattr__(name):
+    """Lazy import for optional text modules."""
+    if name in ("LIC", "DBAC", "CaptionProcessor", "LSTM_ANN_Model", "RNN_ANN_Model", "SimpleTransformer"):
+        try:
+            if name == "LIC":
+                from .text.metrics import LIC
+                return LIC
+            elif name == "DBAC":
+                from .text.metrics import DBAC
+                return DBAC
+            elif name == "CaptionProcessor":
+                from .text.utils.text import CaptionProcessor
+                return CaptionProcessor
+            elif name == "LSTM_ANN_Model":
+                from .text.attacker_models import LSTM_ANN_Model
+                return LSTM_ANN_Model
+            elif name == "RNN_ANN_Model":
+                from .text.attacker_models import RNN_ANN_Model
+                return RNN_ANN_Model
+            elif name == "SimpleTransformer":
+                from .text.attacker_models import SimpleTransformer
+                return SimpleTransformer
+        except ImportError as e:
+            # Re-raise with helpful message
+            raise ImportError(
+                f"Text module '{name}' requires additional dependencies.\n"
+                f"Install with: pip install bias-amplification[text]\n"
+                f"Original error: {e}"
+            ) from e
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,5 +1,5 @@
-Utilities Module
-================
+Utilities for Bias Amplification Classification Metrics
+=======================================================
 
 Data Creator
 ------------

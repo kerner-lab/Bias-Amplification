@@ -53,6 +53,21 @@ autodoc_default_options = {
     "inherited-members": False,
 }
 
+# Mock imports for dependencies not needed for documentation
+autodoc_mock_imports = [
+    "torch",
+    "sklearn",
+    "pandas",
+    "numpy",
+    "torchtext",
+    "transformers",
+    "gensim",
+    "sentence_transformers",
+    "nltk",
+    "tqdm",
+    "fasttext",
+]
+
 # Autosummary settings
 autosummary_generate = True
 

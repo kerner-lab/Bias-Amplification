@@ -19,6 +19,9 @@ class LSTM_ANN_Model(nn.Module):
         num_ann_layers,
         ann_numFirst,
     ):
+        """
+        Initialize the LSTM_ANN_Model.
+        """
         super(LSTM_ANN_Model, self).__init__()
 
         # Embedding layer
@@ -46,7 +49,9 @@ class LSTM_ANN_Model(nn.Module):
             self.lastAct = nn.Softmax()
 
     def forward(self, x):
-
+        """
+        Forward pass for the LSTM_ANN_Model.
+        """
         x = x.to(device)
 
         # Embedding
@@ -80,6 +85,9 @@ class RNN_ANN_Model(nn.Module):
         num_ann_layers,
         ann_numFirst,
     ):
+        """
+        Initialize the RNN_ANN_Model.
+        """
         super(RNN_ANN_Model, self).__init__()
 
         # Embedding layer
@@ -109,6 +117,9 @@ class RNN_ANN_Model(nn.Module):
             self.lastAct = nn.Softmax()
 
     def forward(self, x):
+        """
+        Forward pass for the RNN_ANN_Model.
+        """
         x = x.to(device)
 
         # Embedding
@@ -131,6 +142,9 @@ class RNN_ANN_Model(nn.Module):
 
 class SimpleTransformer(nn.Module):
     def __init__(self, vocab_size, embedding_dim=64, nhead=2, num_layers=1, max_len=1000, num_classes=2, post_activation=None):
+        """
+        Initialize the SimpleTransformer.
+        """
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.pos_encoding = nn.Parameter(torch.zeros(1, max_len, embedding_dim))
@@ -152,6 +166,9 @@ class SimpleTransformer(nn.Module):
                 self.post_activation = torch.nn.SoftMax()
 
     def forward(self, x):
+        """
+        Forward pass for the SimpleTransformer.
+        """
         seq_len = x.size(1)
         x = self.embedding(x) + self.pos_encoding[:, :seq_len, :]
         x = self.encoder(x)

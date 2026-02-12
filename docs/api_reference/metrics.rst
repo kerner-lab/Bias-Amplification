@@ -1,5 +1,5 @@
-Leakage Module
-==============
+Leakage Classification Metrics for Bias Amplification
+=====================================================
 
 BasePredictabilityMetric
 -------------------------

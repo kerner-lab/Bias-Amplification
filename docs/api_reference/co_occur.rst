@@ -1,5 +1,5 @@
-Co-Occurrence Metrics
-=====================
+Co-Occurrence Classification Metrics for Bias Amplification
+===========================================================
 
 This module provides classes for computing bias amplification metrics based on co-occurrence analysis between protected attributes and task labels.
 

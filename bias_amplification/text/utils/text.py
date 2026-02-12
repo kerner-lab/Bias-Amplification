@@ -31,8 +31,12 @@ class CaptionProcessor:
         tokenizer="basic_english",
         lang="en",
         model_type="glove",
-        bert_model="bert-base-uncased",  # for BERT
     ) -> None:
+        """
+        Initialize the CaptionProcessor.
+        This class is used to pre process the model captions and ground truth captions for bias amplification.
+        It provides functionality to tokenize the captions, build the vocabulary, and equalize the vocabularies.
+        """
         if tokenizer == "nltk":
             from nltk.tokenize import NLTKWordTokenizer
 
@@ -54,6 +58,7 @@ class CaptionProcessor:
         elif model_type == "fasttext":
             self.fasttext_model = fasttext.load_model(model_path) if model_path else None
         elif model_type == "bert":
+            bert_model="bert-base-uncased"
             print(f"Loading BERT model: {bert_model}...")
             self.bert_tokenizer = AutoTokenizer.from_pretrained(bert_model)
             self.bert_model = AutoModel.from_pretrained(bert_model)
@@ -63,24 +68,39 @@ class CaptionProcessor:
 
     @staticmethod
     def load_glove_model(glove_path):
+        """
+        Load the GloVe model from the given path.
+        """
         return KeyedVectors.load_word2vec_format(glove_path, binary=False)
 
     def apply_tokenizer(
         self, text_obj: Union[list[str], pd.Series]
-    ) -> Union[list[list[str]] | pd.Series]:
+    ) -> Union[list[list[str]], pd.Series]:
+        """
+        Tokenize the text object.
+        """
         if isinstance(text_obj, pd.Series):
             return text_obj.apply(self.tokenize)
         return [self.tokenize(text) for text in text_obj]
 
     def build_vocab(self, text_obj: Union[list[str], pd.Series]):
+        """
+        Build the vocabulary from the text object.
+        """
         vocab = build_vocab_from_iterator(self.apply_tokenizer(text_obj))
         return vocab
 
     def tokenize(self, text: str) -> list[str]:
+        """
+        Tokenize the text.
+        """
         tokens = self.tokenizer(text)
         return [token for token in tokens if token not in self.stopwords]
 
     def tokens_to_numbers(self, vocab, text_obj: Union[list[str], pd.Series], pad_value: int = 0):
+        """
+        Convert the tokens to numbers.
+        """
         sequence = numericalize_tokens_from_iterator(vocab, self.apply_tokenizer(text_obj))
         token_ids = [list(next(sequence)) for _ in range(len(text_obj))]
         return pad_sequence(
@@ -89,7 +109,7 @@ class CaptionProcessor:
             padding_value=pad_value,
         )
 
-    def maskWords(
+    def mask_words(
         self,
         string_list: Union[list[str], pd.Series],
         mode: Literal["gender", "object"] = "gender",
@@ -97,9 +117,23 @@ class CaptionProcessor:
         img_id: int = None,
     ) -> Union[list[str], pd.Series]:
         """
-        Mask words based on the specified mode:
-        - "gender": Masks gender words with self.gender_token.
-        - "object": Masks object words with self.object_token if present in object_presence_df.
+        Mask the words in the string list based on the specified mode.
+        
+        Parameters
+        ----------
+        string_list : list[str]
+            List of strings to mask.
+        mode : Literal["gender", "object"], optional
+            The mode to mask the words in. Default is "gender".
+        object_presence_df : pd.DataFrame, optional
+            The dataframe containing the object presence information. Default is None.
+        img_id : int, optional
+            The image id to use for the object presence information. Default is None.
+
+        Returns
+        -------
+        list[str] or pd.Series
+            The masked strings.
         """
         if mode not in ["gender", "object"]:
             raise ValueError("Expected mode to be 'gender' or 'object'")
@@ -150,9 +184,19 @@ class CaptionProcessor:
 
     def get_token_vector(self, token, context_sentence=None):
         """
-        Return embedding vector for a token.
-        - For GloVe: simple lookup
-        - For BERT: token in context_sentence (if provided), else static
+        Get the embedding vector for a token.
+
+        Parameters
+        ----------
+        token : str
+            The token to get the embedding vector for.
+        context_sentence : str, optional
+            The context sentence to use for the BERT model. Default is None.
+
+        Returns
+        -------
+        torch.tensor or None
+            The embedding vector for the token.
         """
         if self.model_type == "glove":
             if self.glove_model and token in self.glove_model:
@@ -194,6 +238,24 @@ class CaptionProcessor:
         """
         Equalize captions using embeddings (GloVe or BERT).
         Preserves structure of tokenized captions.
+
+        Parameters
+        ----------
+        human_captions : list[str]
+            List of human captions.
+        model_captions : list[str]
+            List of model captions.
+        similarity_threshold : float, optional
+            Similarity threshold for vocabulary equalization. Default is 0.5.
+        maskType : str, optional
+            Type of mask to apply. Default is "contextual".
+        bidirectional : bool, optional
+            Whether to equalize the vocabularies bidirectionally. Default is False.
+
+        Returns
+        -------
+        tuple[list[list[str]], list[list[str]]]
+            Equalized human captions and model captions.
         """
 
         human_tokens = [self.tokenize(caption) for caption in human_captions]
@@ -230,9 +292,6 @@ class CaptionProcessor:
             return "unk"
 
         def equalize_caption(caption_tokens, corpus_list):
-            """
-            Process a caption: pre-compute corpus embeddings once, then process all tokens.
-            """
             context_sentence = " ".join(caption_tokens)
             
             # Pre-compute corpus embeddings ONCE for a caption
@@ -276,8 +335,12 @@ class CaptionProcessor:
 
 
 def cmpVocab(vocab1, vocab2):
-    set1 = set(vocab1.stoi.keys())
-    set2 = set(vocab2.stoi.keys())
+    """
+    Compare the vocabularies of two caption processors.
+    """
+    # Compatible with both old and new torchtext versions
+    set1 = set(vocab1.get_stoi().keys() if hasattr(vocab1, 'get_stoi') else vocab1.stoi.keys())
+    set2 = set(vocab2.get_stoi().keys() if hasattr(vocab2, 'get_stoi') else vocab2.stoi.keys())
 
     common_tokens = set1 & set2
     only_in_vocab1 = set1 - set2
@@ -289,6 +352,9 @@ def cmpVocab(vocab1, vocab2):
 
 # CLI
 def get_parser():
+    """
+    Get the parser for the CaptionProcessor CLI.
+    """
     parser = argparse.ArgumentParser(description="CaptionProcessor CLI")
     parser.add_argument("--tokenizer", default="nltk", choices=["nltk", "spacy"])
     parser.add_argument("--mode", default="gender", choices=["gender", "object"])
