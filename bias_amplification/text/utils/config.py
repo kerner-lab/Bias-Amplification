@@ -32,10 +32,11 @@ FEMININE = [
     ]
 
 DEFAULT_CONFIG = {
-    "NUM_TRIALS": 25,
+    "NUM_TRIALS": 10,
     "METHOD": "mean",
     "NORMALIZED": False,
     "MASK_MODE": "gender",
+    "MASK_TYPE": "constant",
     "APPLY_BAYES": False,
     "EVAL_METRIC": "mse",
     "DEVICE": "cpu",
@@ -48,7 +49,7 @@ DEFAULT_CONFIG = {
 
 LIC_CONFIG = {
     "SIMILARITY_THRESHOLD": 1,
-    "MASK_TYPE": "constant",
+    "MASK_TYPE": "contextual",
 }
 
 DBAC_CONFIG = {

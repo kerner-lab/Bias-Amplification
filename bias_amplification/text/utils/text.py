@@ -12,7 +12,9 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 from torchtext.data.functional import numericalize_tokens_from_iterator
 from transformers import AutoTokenizer, AutoModel
+from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
+import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # torchtext.disable_torchtext_deprecation_warning()
@@ -31,6 +33,7 @@ class CaptionProcessor:
         tokenizer="basic_english",
         lang="en",
         model_type="glove",
+        device=torch.device("cpu"),
     ) -> None:
         """
         Initialize the CaptionProcessor.
@@ -53,16 +56,32 @@ class CaptionProcessor:
         self.bert_model = None
         self.glove_model = None
         self.fasttext_model = None
+        self.default_dim_model = None
+        self.sbert_model = None
+        self.device = device
+
         if model_type == "glove":
             self.glove_model = self.load_glove_model(model_path) if model_path else None
+            self.default_dim_model = 50
         elif model_type == "fasttext":
             self.fasttext_model = fasttext.load_model(model_path) if model_path else None
+            self.default_dim_model = 300
         elif model_type == "bert":
+            # bert_model="sentence-transformers/all-MiniLM-L6-v2"
             bert_model="bert-base-uncased"
             print(f"Loading BERT model: {bert_model}...")
             self.bert_tokenizer = AutoTokenizer.from_pretrained(bert_model)
             self.bert_model = AutoModel.from_pretrained(bert_model)
             self.bert_model.eval()
+            self.bert_model = self.bert_model.to(self.device)
+            self.default_dim_model = 768
+        elif model_type == "sbert":
+            sbert_model="all-MiniLM-L6-v2"
+            print(f"Loading SBERT model: {sbert_model}...")
+            self.sbert_model = SentenceTransformer(sbert_model)
+            self.sbert_model.eval()
+            self.sbert_model = self.sbert_model.to(self.device)
+            self.default_dim_model = 384
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
 
@@ -146,41 +165,111 @@ class CaptionProcessor:
         ]
         return masked_strings
 
-    def get_embedding_dim(self):
+    # def get_embedding_dim(self):
+    #     """
+    #     Get the embedding dimension for the current model.
+    #     Returns the dimension size (e.g., 300 for GloVe, 768 for BERT-base).
+    #     """
+    #     if self.model_type == "glove":
+    #         if self.glove_model is not None:
+    #             # Get dimension from GloVe model
+    #             return self.glove_model.vector_size
+    #         else:
+    #             # Fallback: try to get from a sample word
+    #             sample_vec = self.get_token_vector("the", None)
+    #             if sample_vec is not None:
+    #                 return sample_vec.shape[0]
+    #             return 300  # Default GloVe dimension
+    #     elif self.model_type == "fasttext":
+    #         if self.fasttext_model is not None:
+    #             return self.fasttext_model.get_dimension()
+    #         else:
+    #             sample_vec = self.get_token_vector("the", None)
+    #             if sample_vec is not None:
+    #                 return sample_vec.shape[0]
+    #             return 300  # Default FastText dimension
+    #     elif self.model_type == "bert":
+    #         if self.bert_model is not None:
+    #             # Get dimension from BERT model config
+    #             return self.bert_model.config.hidden_size
+    #         else:
+    #             # Fallback: try to get from a sample token
+    #             sample_vec = self.get_token_vector("the", None)
+    #             if sample_vec is not None:
+    #                 return sample_vec.shape[0]
+    #             return 768  # Default BERT-base dimension
+    #     else:
+    #         raise ValueError(f"Unknown model_type: {self.model_type}")
+
+
+    def get_tokenized_vectors(self, tokens):
         """
-        Get the embedding dimension for the current model.
-        Returns the dimension size (e.g., 300 for GloVe, 768 for BERT-base).
+        Return embedding vector for a token.
+        - For GloVe and fasttext: simple lookup
+        - For BERT or SBERT: token in isolation
         """
+        embeddings = []
         if self.model_type == "glove":
-            if self.glove_model is not None:
-                # Get dimension from GloVe model
-                return self.glove_model.vector_size
-            else:
-                # Fallback: try to get from a sample word
-                sample_vec = self.get_token_vector("the", None)
-                if sample_vec is not None:
-                    return sample_vec.shape[0]
-                return 300  # Default GloVe dimension
+            for token in tokens:
+                if self.glove_model and token in self.glove_model:
+                    embeddings.append(torch.tensor(self.glove_model[token]))
+                else:
+                    embeddings.append(torch.zeros(self.default_dim_model))
+            embeddings = torch.stack(embeddings)
         elif self.model_type == "fasttext":
-            if self.fasttext_model is not None:
-                return self.fasttext_model.get_dimension()
-            else:
-                sample_vec = self.get_token_vector("the", None)
-                if sample_vec is not None:
-                    return sample_vec.shape[0]
-                return 300  # Default FastText dimension
+            for token in tokens:
+                if self.fasttext_model:
+                    embeddings.append(torch.tensor(self.fasttext_model.get_word_vector(token)))
+                else:
+                    embeddings.append(torch.zeros(self.default_dim_model))
+            embeddings = torch.stack(embeddings)
         elif self.model_type == "bert":
-            if self.bert_model is not None:
-                # Get dimension from BERT model config
-                return self.bert_model.config.hidden_size
+            cap_inputs = self.bert_tokenizer(tokens, return_tensors="pt", padding=True, add_special_tokens=False)
+            cap_inputs = {k: v.to(self.device) for k, v in cap_inputs.items()}
+            with torch.no_grad():
+                outputs = self.bert_model(**cap_inputs)
+            embeddings = outputs.last_hidden_state.mean(dim=1)
+        elif self.model_type == "sbert":
+            embeddings = self.sbert_model.encode(tokens, convert_to_tensor=True)
+        return embeddings
+
+    def get_tokenized_vectors_sbert_contextual(self, sentence_tokens):
+        """
+        Return embedding vector for a token.
+        - For SBERT: token in context_sentence
+        """
+        sentence = " ".join(sentence_tokens)
+        sentence_embeddings = self.sbert_model.encode(sentence, convert_to_tensor=True, output_value="token_embeddings")
+        return sentence_embeddings
+
+    def get_tokenized_vectors_bert_contextual(self, corpus_tokens, sentence_tokens):
+        """
+        Return embedding vector for a token.
+        - For BERT: token in context_sentence
+        """
+        corpus_embeddings = []
+        sentence_embeddings = []
+        sentence = " ".join(sentence_tokens)
+        inputs = self.bert_tokenizer(sentence, return_tensors="pt",padding=True,truncation=True)
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        with torch.no_grad():
+            outputs = self.bert_model(**inputs)
+        hidden_states = outputs.last_hidden_state.squeeze(0)
+        tokens = self.bert_tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
+        for token in corpus_tokens:
+            if token in tokens:
+                corpus_embeddings.append(hidden_states[tokens.index(token)])
             else:
-                # Fallback: try to get from a sample token
-                sample_vec = self.get_token_vector("the", None)
-                if sample_vec is not None:
-                    return sample_vec.shape[0]
-                return 768  # Default BERT-base dimension
-        else:
-            raise ValueError(f"Unknown model_type: {self.model_type}")
+                corpus_embeddings.append(torch.zeros(self.default_dim_model))
+        for cap_token in sentence_tokens:
+            if cap_token in tokens:
+                sentence_embeddings.append(hidden_states[tokens.index(cap_token)])
+            else:
+                sentence_embeddings.append(torch.zeros(self.default_dim_model))
+        corpus_embeddings = torch.stack(corpus_embeddings)
+        sentence_embeddings = torch.stack(sentence_embeddings)
+
+        return corpus_embeddings, sentence_embeddings
 
     def get_token_vector(self, token, context_sentence=None):
         """
@@ -227,6 +316,7 @@ class CaptionProcessor:
                 return outputs.last_hidden_state.mean(dim=1).squeeze(0)
 
 
+
     def equalize_vocab(
         self,
         human_captions,
@@ -268,68 +358,51 @@ class CaptionProcessor:
         machine_corpus_list = list(machine_corpus)
         human_corpus_list = list(human_corpus)
 
-        # Get embedding dimension before processing
-        embedding_dim = self.get_embedding_dim()
-        # Create a zero vector template for missing embeddings
-        zero_vec_template = torch.zeros(embedding_dim)
+        def equalize_caption(caption_tokens, corpus_list, corpus_embeddings=None):
 
-        def substitute_token(token, corpus_list, corpus_embeddings, context_sentence=None):
-            token = token.lower()
-            if token in corpus_list:
-                return token
+            if corpus_embeddings is None:
+                corpus_embeddings, sentence_embeddings = self.get_tokenized_vectors_bert_contextual(corpus_list, caption_tokens)
+            elif self.model_type == "sbert" and maskType == "contextual":
+                sentence_embeddings = self.get_tokenized_vectors_sbert_contextual(caption_tokens)
+            else:
+                sentence_embeddings = self.get_tokenized_vectors(caption_tokens)
 
-            token_vec = self.get_token_vector(token, context_sentence)
-            if token_vec is None:
-                return "unk"
+            cosine_scores = util.cos_sim(sentence_embeddings, corpus_embeddings)
+            equalized_sent_toks = []
+            for i, token in enumerate(caption_tokens):
+                token = token.lower()
+                if token in corpus_list:
+                    equalized_sent_toks.append(token)
+                    continue
 
-            similarities = torch.nn.functional.cosine_similarity(
-                token_vec.unsqueeze(0), corpus_embeddings, dim=1
-            )
-            max_similarity, best_idx = torch.max(similarities, dim=0)
-
-            if max_similarity >= similarity_threshold and maskType == "contextual":
-                return corpus_list[best_idx.item()]
-            return "unk"
-
-        def equalize_caption(caption_tokens, corpus_list):
-            context_sentence = " ".join(caption_tokens)
-            
-            # Pre-compute corpus embeddings ONCE for a caption
-            corpus_embeddings = []
-            for t in corpus_list:
-                vec = self.get_token_vector(t, context_sentence)
-                if vec is not None:
-                    corpus_embeddings.append(vec.unsqueeze(0))
+                max_similarity, best_idx = torch.max(cosine_scores[i], dim=0)
+                sim_threshold = 0.3 if self.model_type == "sbert" else similarity_threshold
+                if max_similarity >= sim_threshold:
+                    target_word = corpus_list[best_idx.item()]
+                    equalized_sent_toks.append(target_word)
                 else:
-                    # Use pre-determined zero vector template
-                    corpus_embeddings.append(zero_vec_template.unsqueeze(0))
-            corpus_embeddings_tensor = torch.cat(corpus_embeddings, dim=0)
+                    equalized_sent_toks.append("unk")
+            return " ".join(equalized_sent_toks)
 
-            return " ".join([
-                substitute_token(
-                    tok,
-                    corpus_list,
-                    corpus_embeddings_tensor,
-                    context_sentence
-                )
-                for tok in caption_tokens
-            ])
-
-
-        # Equalize human captions
+        
+        
+        corpus_embedding = None
+        if maskType != "bert":
+            corpus_embedding = self.get_tokenized_vectors(machine_corpus_list)
         equalized_human = [
-            equalize_caption(human_cap, machine_corpus_list)
+            equalize_caption(human_cap, machine_corpus_list, corpus_embedding)
             for human_cap in tqdm(human_tokens, desc="Equalizing Human Captions")
         ]
-
-        # Equalize model captions if bidirectional
         if bidirectional:
+            if maskType != "bert":
+                corpus_embedding = self.get_tokenized_vectors(human_corpus_list)
             equalized_model = [
-                equalize_caption(model_cap, human_corpus_list)
+                equalize_caption(model_cap, human_corpus_list, corpus_embedding)
                 for model_cap in tqdm(model_tokens, desc="Equalizing Model Captions")
             ]
         else:
             equalized_model = [" ".join(cap) for cap in model_tokens]
+        
 
         return equalized_human, equalized_model
 

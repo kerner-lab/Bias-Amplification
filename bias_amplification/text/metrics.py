@@ -93,6 +93,7 @@ class BiasMetricBase(ABC):
             obj_token=obj_token,
             model_path=model_path,
             model_type=model_type,
+            device=device
         )
 
     def init_eval_metric(self, metric: Union[Callable, str]) -> None:
@@ -253,6 +254,9 @@ class BiasMetricBase(ABC):
             maskType=mask_type,
             bidirectional=bidirectional,
         )
+        pd.DataFrame(model_captions).to_csv(f"./Dataset_test/model_captions_{self.cap_processor.model_type}.csv", index=False)
+        pd.DataFrame(human_captions).to_csv(f"./Dataset_test/human_captions_{self.cap_processor.model_type}.csv", index=False)
+
         model_vocab = self.cap_processor.build_vocab(model_captions)
         human_vocab = self.cap_processor.build_vocab(human_captions)
         human_vocab_set = set(human_vocab.get_stoi().keys() if hasattr(human_vocab, 'get_stoi') else human_vocab.stoi.keys())
@@ -478,7 +482,7 @@ class LIC(BiasMetricBase):
             mode=mask_mode,
             similarity_threshold=similarity_threshold,
             mask_type=mask_type,
-            bidirectional=False,
+            bidirectional=False
         )
         pred = pred.to(self.device)
         data = data.to(self.device)
@@ -520,10 +524,10 @@ class DBAC(BiasMetricBase):
         obj_words: list[str],
         gender_token: str,
         obj_token: str,
+        model_type: str,
         eval_metric: Union[Callable, str] = DEFAULT_CONFIG["EVAL_METRIC"],
         model_path: str | None = None,
         device: str = DEFAULT_CONFIG["DEVICE"],
-        model_type: str = DEFAULT_CONFIG["MODEL_TYPE"]
     ) -> None:
         """
         Initialize DBAC metric.
@@ -834,6 +838,14 @@ if __name__ == "__main__":
     from bias_amplification.text.attacker_models import LSTM_ANN_Model
     import os
     from bias_amplification.text.Dataset_test.datacreator import CaptionGenderDataset
+
+    def get_device():
+        if torch.backends.mps.is_available():
+            return torch.device("mps")
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        return torch.device("cpu")
+    
     script_dir = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "text/Dataset_test"
@@ -842,9 +854,12 @@ if __name__ == "__main__":
     MODEL_ANN_PATH = os.path.join(script_dir, "gender_val_transformer_cap_mw_entries.pkl")
     # HUMAN_ANN_PATH = "./bias_data/Human_Ann/gender_obj_cap_mw_entries.pkl"
     # MODEL_ANN_PATH = "./bias_data/Transformer/gender_val_transformer_cap_mw_entries.pkl"
-    MODEL_PATH = os.path.join(script_dir, "cc.en.300.bin")
-    # MODEL_PATH = os.path.join(script_dir, "glove.6B.50d.w2vformat.txt")
-    MODEL="fasttext"
+    MODEL_FASTTEXT_PATH = os.path.join(script_dir, "cc.en.300.bin")
+    MODEL_GLOVE_PATH = os.path.join(script_dir, "glove.6B.50d.w2vformat.txt")
+    FASTTEXT_MODEL="fasttext"
+    GLOVE_MODEL="glove"
+    BERT_MODEL="bert"
+    SBERT_MODEL="sbert"
     MASCULINE = [
         "man",
         "men",
@@ -879,13 +894,14 @@ if __name__ == "__main__":
     ]
     GENDER_WORDS = MASCULINE + FEMININE
     GENDER_TOKEN = "<unk>"
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = get_device()
 
     data_obj = CaptionGenderDataset(HUMAN_ANN_PATH, MODEL_ANN_PATH)
     ann_data = data_obj.getDataCombined()
     object_presence_df = data_obj.get_object_presence_df()
     OBJ_WORDS = object_presence_df.columns.tolist()
     OBJ_TOKEN = "<obj>"
+    ann_data = ann_data[:5000]
 
     human_ann = ann_data["caption_human"]
     model_ann = ann_data["caption_model"]
@@ -912,32 +928,32 @@ if __name__ == "__main__":
         "batch_size": 1024,
     }
 
-    LIC_obj = LIC(
-        model_params=model_params,
-        train_params=train_params,
-        gender_words=GENDER_WORDS,
-        obj_words=OBJ_WORDS,
-        gender_token=GENDER_TOKEN,
-        obj_token=OBJ_TOKEN,
-        eval_metric="mse",
-        model_path=MODEL_PATH,
-        model_type=MODEL,
-        device=DEVICE,
-    )
+    # LIC_obj = LIC(
+    #     model_params=model_params,
+    #     train_params=train_params,
+    #     gender_words=GENDER_WORDS,
+    #     obj_words=OBJ_WORDS,
+    #     gender_token=GENDER_TOKEN,
+    #     obj_token=OBJ_TOKEN,
+    #     eval_metric="mse",
+    #     model_path=MODEL_PATH,
+    #     model_type=MODEL,
+    #     device=DEVICE,
+    # )
 
-    lic_analysis_data = LIC_obj.get_amortized_leakage(
-        feat=gender,
-        data=human_ann,
-        pred=model_ann,
-        num_trials=1,
-        method="mean",
-        normalized=False,
-        similarity_threshold=1,
-        mask_type="constant",
-        mask_mode="gender",
-    )
+    # lic_analysis_data = LIC_obj.get_amortized_leakage(
+    #     feat=gender,
+    #     data=human_ann,
+    #     pred=model_ann,
+    #     num_trials=1,
+    #     method="mean",
+    #     normalized=False,
+    #     similarity_threshold=1,
+    #     mask_type="constant",
+    #     mask_mode="gender",
+    # )
 
-    DBAC_obj = DBAC(
+    DBAC_obj_glove = DBAC(
         model_params=model_params,
         train_params=train_params,
         gender_words=GENDER_WORDS,
@@ -945,20 +961,107 @@ if __name__ == "__main__":
         gender_token=GENDER_TOKEN,
         obj_token=OBJ_TOKEN,
         eval_metric="bce",
-        model_path=MODEL_PATH,
-        model_type=MODEL,
+        model_path=MODEL_GLOVE_PATH,
+        model_type=GLOVE_MODEL,
         device=DEVICE
     )
-
-    dbac_analysis_data = DBAC_obj.get_amortized_leakage(
-        feat=gender,
-        data=human_ann,
-        pred=model_ann,
-        num_trials=1,
-        method="mean",
-        apply_bayes=True,
-        normalized=False,
+    print("Caption Preprocessing using glove...")
+    pred_glove, data_glove = DBAC_obj_glove.caption_preprocess(
+        model_captions=model_ann,
+        human_captions=human_ann,
+        mode="gender",
         similarity_threshold=0.5,
         mask_type="contextual",
-        mask_mode="gender",
+        bidirectional=True,
     )
+    print(pred_glove.shape, data_glove.shape)
+    print("="*50)
+
+
+
+    # DBAC_obj_fasttext = DBAC(
+    #     model_params=model_params,
+    #     train_params=train_params,
+    #     gender_words=GENDER_WORDS,
+    #     obj_words=OBJ_WORDS,
+    #     gender_token=GENDER_TOKEN,
+    #     obj_token=OBJ_TOKEN,
+    #     eval_metric="bce",
+    #     model_path=MODEL_FASTTEXT_PATH,
+    #     model_type=FASTTEXT_MODEL,
+    #     device=DEVICE
+    # )
+    # print("Caption Preprocessing using fasttext...")
+    # pred_fasttext, data_fasttext = DBAC_obj_fasttext.caption_preprocess(
+    #     model_captions=model_ann,
+    #     human_captions=human_ann,
+    #     mode="gender",
+    #     similarity_threshold=0.5,
+    #     mask_type="contextual",
+    #     bidirectional=True,   
+    # )
+    # print(pred_fasttext.shape, data_fasttext.shape)
+    # print("="*50)
+
+
+    # DBAC_obj_bert = DBAC(
+    #     model_params=model_params,
+    #     train_params=train_params,
+    #     gender_words=GENDER_WORDS,
+    #     obj_words=OBJ_WORDS,
+    #     gender_token=GENDER_TOKEN,
+    #     obj_token=OBJ_TOKEN,
+    #     eval_metric="bce",
+    #     model_type=BERT_MODEL,
+    #     device=DEVICE
+    # )
+    # print("Caption Preprocessing using bert...")
+    # pred, data = DBAC_obj_bert.caption_preprocess(
+    #     model_captions=model_ann,
+    #     human_captions=human_ann,
+    #     mode="gender",
+    #     similarity_threshold=0.5,
+    #     mask_type="contextual",
+    #     bidirectional=True,
+    # )
+    # print(pred.shape, data.shape)
+    # print("="*50)
+
+    # DBAC_obj_sbert = DBAC(
+    #     model_params=model_params,
+    #     train_params=train_params,
+    #     gender_words=GENDER_WORDS,
+    #     obj_words=OBJ_WORDS,
+    #     gender_token=GENDER_TOKEN,
+    #     obj_token=OBJ_TOKEN,
+    #     eval_metric="bce",
+    #     model_type=SBERT_MODEL,
+    #     device=DEVICE
+    # )
+    # print("Caption Preprocessing using sbert...")
+    # pred, data = DBAC_obj_sbert.caption_preprocess(
+    #     model_captions=model_ann,
+    #     human_captions=human_ann,
+    #     mode="gender",
+    #     similarity_threshold=0.5,
+    #     mask_type="contextual",
+    #     bidirectional=True,
+    # )
+    # print(pred.shape, data.shape)
+    # print("="*50)
+
+
+    # dbac_analysis_data = DBAC_obj.get_amortized_leakage(
+    #     feat=gender,
+    #     data=human_ann,
+    #     pred=model_ann,
+    #     num_trials=1,
+    #     method="mean",
+    #     apply_bayes=True,
+    #     normalized=False,
+    #     similarity_threshold=0.5,
+    #     mask_type="contextual",
+    #     mask_mode="gender",
+    # )
+
+    
