@@ -10,7 +10,7 @@ Main modules:
 - attacker_models: Neural network models for attacker simulation
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.1"
 
 from .metrics.PredMetrics import BasePredictabilityMetric, Leakage, DPA
 from .metrics.CoOccurMetrics import BaseCoOccurMetric, BA_MALS, DBA, MDBA

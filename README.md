@@ -21,16 +21,16 @@ Measure bias by analyzing statistical relationships between protected attributes
 
 | Metric | Class | What it captures | Paper |
 |--------|-------|-----------------|-------|
-| BA_MALS | `BA_MALS` | Bias amplification in positively correlated attribute–label pairs | Zhao et al., 2021 |
-| DBA | `DBA` | Bias amplification in both positively and negatively correlated pairs | — |
-| MDBA | `MDBA` | Bias amplification across all attribute combinations (intersectional) | — |
+| BA_MALS | `BA_MALS` | Bias amplification in positively correlated attribute–label pairs | [Zhao et al., EMNLP 2017](https://arxiv.org/abs/1707.09457) |
+| DBA | `DBA` | Bias amplification in both positively and negatively correlated pairs | [Wang & Russakovsky, ICML 2021](https://arxiv.org/abs/2102.12594) |
+| MDBA | `MDBA` | Bias amplification across all attribute combinations (intersectional) | [Zhao et al., ICML 2023](https://arxiv.org/abs/2210.11924) |
 
 ### Predictability Metrics
 Measure bias by training an attacker model to predict protected attributes from model outputs.
 
 | Metric | Class | What it captures | Paper |
 |--------|-------|-----------------|-------|
-| Leakage | `Leakage` | Raw information leakage from predictions to protected attributes | — |
+| Leakage | `Leakage` | Raw information leakage from predictions to protected attributes | [Wang et al., ICCV 2019](https://arxiv.org/abs/1811.08489) |
 | DPA | `DPA` | Directional leakage: A→T and T→A | [Tokas et al., NeurIPS 2025](https://arxiv.org/abs/2412.11060) |
 | DBAC | `DBAC` | Directional bias amplification in image captioning / generation | [Nair et al., WACV 2026](https://arxiv.org/abs/2503.07878) |
 
