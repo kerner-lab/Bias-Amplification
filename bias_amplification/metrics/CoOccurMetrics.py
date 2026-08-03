@@ -128,6 +128,19 @@ class BaseCoOccurMetric(ABC):
 
 
 class BA_MALS(BaseCoOccurMetric):
+    """
+    Bias Amplification Metric introduced by Zhao et al. (2017), also referred
+    to as MALS. Computes bias amplification by comparing conditional
+    probabilities of A given T and A given T_pred, focusing only on
+    positively correlated A-T pairs.
+
+    References
+    ----------
+    - Zhao, J., Wang, T., Yatskar, M., Ordonez, V., & Chang, K.-W. (2017).
+      "Men Also Like Shopping: Reducing Gender Bias Amplification using
+      Corpus-level Constraints." In Proceedings of EMNLP 2017.
+      https://arxiv.org/abs/1707.09457
+    """
 
     def __init__(self):
         super().__init__()
@@ -191,9 +204,14 @@ class DBA(BaseCoOccurMetric):
     """
     Bias Amplification Metric from Directional Bias Amplification.
     This metric computes bias amplification that addresses on the shortcomings
-    of Zhao's metric by focusing on both positive and negative correlations,
-    and the direction of amplification through comparing the conditional
-    probabilities of A given T and A given T_pred.
+    of Zhao et al.'s (2017) BA_MALS metric by focusing on both positive and
+    negative correlations, and the direction of amplification through
+    comparing the conditional probabilities of A given T and A given T_pred.
+
+    References
+    ----------
+    - Wang, A., & Russakovsky, O. (2021). "Directional Bias Amplification."
+      In Proceedings of ICML 2021. https://arxiv.org/abs/2102.12594
     """
 
     def __init__(self):
@@ -297,6 +315,12 @@ class MDBA(BaseCoOccurMetric):
     This metric computes bias amplification that addresses on the shortcomings
     of DBA by focusing on multi-attribute combinations through comparing the conditional
     probabilities of A given T and A given T_pred.
+
+    References
+    ----------
+    - Zhao, D., Andrews, J. T. A., & Xiang, A. (2023). "Men Also Do Laundry:
+      Multi-Attribute Bias Amplification." In Proceedings of ICML 2023.
+      https://arxiv.org/abs/2210.11924
     """
 
     def __init__(self, min_attr_size: int = 1, max_attr_size: int = None):
@@ -373,16 +397,19 @@ class MDBA(BaseCoOccurMetric):
     def computeBiasAmp(
         self, A: torch.tensor, T: torch.tensor, T_pred: torch.tensor
     ) -> Tuple[torch.tensor, torch.tensor]:
-        """
+        r"""
         Computes Multi-Dimensional Bias Amplification from A to T.
 
         This implements the Multi-> directional metric from the paper (Equation 3).
         It iterates over ALL combinations of attributes M and computes bias amplification
         for each combination, then aggregates.
 
-        The formula from the paper:
-        Multi-> = (mean, variance) where
-        mean = (1 / |G||M|) * Σ_g Σ_m |y_gm * Δ_gm + (1 - y_gm) * |-Δ_gm||
+        The formula from the paper, where Multi-> is reported as (mean, variance):
+
+        .. math::
+
+            \text{mean} = \frac{1}{|G||M|} \sum_{g \in G} \sum_{m \in M}
+            \left| y_{gm} \Delta_{gm} + (1 - y_{gm})(-\Delta_{gm}) \right|
 
         Parameters
         ----------

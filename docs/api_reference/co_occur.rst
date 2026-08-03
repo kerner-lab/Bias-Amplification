@@ -25,7 +25,7 @@ BaseCoOccurMetric
 BA_MALS
 -------
 
-Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amplification by comparing conditional probabilities, but only focuses on positive correlations.
+Bias Amplification Metric from `Zhao et al. (2017) <https://arxiv.org/abs/1707.09457>`_. This metric computes bias amplification by comparing conditional probabilities, but only focuses on positive correlations.
 
 .. autoclass:: bias_amplification.metrics.CoOccurMetrics.BA_MALS
    :members:
@@ -59,7 +59,7 @@ Bias Amplification Metric from Zhao et al. (2021). This metric computes bias amp
 DBA (Directional Bias Amplification)
 --------------------------------------
 
-Bias Amplification Metric that addresses shortcomings of BA_MALS by focusing on both positive and negative correlations, and the direction of amplification.
+Bias Amplification Metric from `Wang & Russakovsky (2021) <https://arxiv.org/abs/2102.12594>`_ that addresses shortcomings of BA_MALS by focusing on both positive and negative correlations, and the direction of amplification.
 
 .. autoclass:: bias_amplification.metrics.CoOccurMetrics.DBA
    :members:
@@ -96,9 +96,9 @@ Bias Amplification Metric that addresses shortcomings of BA_MALS by focusing on 
       # Returns dict with keys 'AtoT' and 'TtoA'
 
 MDBA (Multi-Attribute Directional Bias Amplification)
---------------------------------------------
+-------------------------------------------------------
 
-Multi-Attribute Directional Bias Amplification Metric that extends DBA to handle multi-dimensional attribute combinations, computing bias amplification across all possible attribute combinations.
+Multi-Attribute Directional Bias Amplification Metric that extends DBA to handle multi-dimensional attribute combinations, computing bias amplification across all possible attribute combinations. Introduced in `Zhao, D. et al. (2023) <https://arxiv.org/abs/2210.11924>`_.
 
 .. autoclass:: bias_amplification.metrics.CoOccurMetrics.MDBA
    :members:

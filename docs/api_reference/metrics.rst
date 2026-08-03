@@ -53,7 +53,7 @@ Leakage
       )
 
 DPA (Directional Predictability Amplification)
-------------------------------------------
+------------------------------------------------
 
 .. autoclass:: bias_amplification.metrics.PredMetrics.DPA
    :members:

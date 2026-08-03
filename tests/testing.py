@@ -1,7 +1,6 @@
 import torch
 from test_coOccurMetrics import test_data, test_metrics
 
-
 data = test_data()
 metrics = test_metrics()
 A = data["P"]

@@ -509,6 +509,13 @@ class BasePredictabilityMetric(ABC):
 class Leakage(BasePredictabilityMetric):
     """
     This class inherits from the BasePredictabilityMetric class and implements the Leakage metric.
+
+    References
+    ----------
+    - Wang, T., Zhao, J., Yatskar, M., Chang, K.-W., & Ordonez, V. (2019).
+      "Balanced Datasets Are Not Enough: Estimating and Mitigating Gender
+      Bias in Deep Image Representations." In Proceedings of ICCV 2019.
+      https://arxiv.org/abs/1811.08489
     """
 
     def __init__(
@@ -523,15 +530,16 @@ class Leakage(BasePredictabilityMetric):
         Parameters
         ----------
         model_params : dict
-            {"attacker" : model}
+            ``{"attacker": model}``
         train_params : dict
-            {
-                "learning_rate": The learning rate hyperparameter,
-                "loss_function": The loss function to be used.
-                        Existing options: ["mse", "cross-entropy"],
-                "epochs": Number of training epochs to be set,
-                "batch_size: Number of batches per epoch
-            }
+            Dictionary with the following keys::
+
+                learning_rate: The learning rate hyperparameter
+                loss_function: The loss function to use.
+                    Existing options: ["mse", "cross-entropy"]
+                epochs: Number of training epochs to run
+                batch_size: Number of samples per batch
+
         model_acc : float
             The accuracy of the model being used for quality equalization.
         eval_metric : Union[Callable,str]
@@ -617,6 +625,17 @@ class Leakage(BasePredictabilityMetric):
 # DPA Predictability Metric
 # ============================================================================
 class DPA(BasePredictabilityMetric):
+    """
+    This class inherits from the BasePredictabilityMetric class and implements the
+    Directional Predictability Amplification (DPA) metric, the predictability-based
+    counterpart to Directional Bias Amplification (DBA).
+
+    References
+    ----------
+    - Tokas, B. and Nair, R. (equal contribution), & Kerner, H. (2025).
+      "DPA: A one-stop metric to measure bias amplification in classification
+      datasets." NeurIPS 2025. https://arxiv.org/abs/2412.11060
+    """
 
     def __init__(
         self,
@@ -631,16 +650,17 @@ class DPA(BasePredictabilityMetric):
         Parameters
         ----------
         model_params : dict
-            Dictionary of the following forms-
-            {"attacker_AtoT" : attacker_AtoT, "attacker_TtoA" : attacker_TtoA}
+            Dictionary of the following form:
+            ``{"attacker_AtoT": attacker_AtoT, "attacker_TtoA": attacker_TtoA}``
         train_params : dict
-            {
-            "learning_rate": The learning rate hyperparameter,
-            "loss_function": The loss function to be used.
-                    Existing options: ["mse", "cross-entropy"],
-            "epochs": Number of training epochs to be set,
-            "batch_size: Number of batches per epoch
-            }
+            Dictionary with the following keys::
+
+                learning_rate: The learning rate hyperparameter
+                loss_function: The loss function to use.
+                    Existing options: ["mse", "cross-entropy"]
+                epochs: Number of training epochs to run
+                batch_size: Number of samples per batch
+
         model_acc : Union[float, dict]
             The accuracy of the model being used for quality equalization.
             For bidirectional case, send dict of the form {'AtoT': acc_AtoT, 'TtoA': acc_TtoA}

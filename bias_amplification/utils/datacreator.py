@@ -9,16 +9,17 @@ def validate_error_percent(error_percent, name):
     Checks if the error percentage is valid.
     It raises an error, otherwise.
 
-    Parameters:
+    Parameters
     ----------
     error_percent: float
         The error percentage to validate
     name: str
         The name of the error percentage to validate
 
-    Raises:
-    -------
-    ValueError: If the error percentage is not in the range [0, 0.25]
+    Raises
+    ------
+    ValueError
+        If the error percentage is not in the range [0, 0.25]
     """
     if 0 <= error_percent <= 0.25:
         pass
